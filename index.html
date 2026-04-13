@@ -1,925 +1,1136 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube German Learning Transcriber</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AudioScript — German Transcriber</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0f0f0f;
+    --paper: #f5f2eb;
+    --cream: #ede9df;
+    --gold: #c9a84c;
+    --gold-dim: #e8d9a8;
+    --red: #c0392b;
+    --green: #2e7d5e;
+    --blue: #1a3a5c;
+    --muted: #7a7060;
+    --border: #d4ccb8;
+    --shadow: 0 2px 12px rgba(15,15,15,0.10);
+  }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
-        }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
 
-        .header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
+  /* ─── HEADER ──────────────────────────────── */
+  header {
+    background: var(--blue);
+    color: var(--gold-dim);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 3px solid var(--gold);
+  }
 
-        .header h1 {
-            font-size: 2em;
-            margin-bottom: 10px;
-        }
+  header .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.7rem;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
 
-        .header p {
-            opacity: 0.9;
-            font-size: 1.1em;
-        }
+  header .logo span { color: var(--gold); }
 
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 300px;
-            gap: 20px;
-            padding: 20px;
-        }
+  header .tagline {
+    font-size: 0.8rem;
+    font-weight: 300;
+    color: var(--gold-dim);
+    border-left: 1px solid var(--gold);
+    padding-left: 14px;
+    margin-left: 4px;
+  }
 
-        @media (max-width: 1024px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-        }
+  /* ─── LAYOUT ──────────────────────────────── */
+  .app {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 0;
+    height: calc(100vh - 67px);
+  }
 
-        .video-section {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; height: auto; }
+    .sidebar { border-left: none; border-top: 2px solid var(--border); }
+  }
 
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
+  /* ─── MAIN PANEL ──────────────────────────── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
-        .input-group input {
-            flex: 1;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
+  .toolbar {
+    background: var(--cream);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
 
-        .input-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+  .url-row {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
 
-        .btn {
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
+  .url-input {
+    flex: 1;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    padding: 9px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+    min-width: 0;
+  }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
+  .url-input:focus { border-color: var(--gold); }
+  .url-input::placeholder { color: var(--muted); }
 
-        .btn:active {
-            transform: translateY(0);
-        }
+  .btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 9px 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.18s;
+    white-space: nowrap;
+  }
 
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+  .btn-primary {
+    background: var(--blue);
+    color: #fff;
+  }
 
-        .video-container {
-            position: relative;
-            padding-bottom: 56.25%;
-            height: 0;
-            background: #000;
-            border-radius: 8px;
-            overflow: hidden;
-        }
+  .btn-primary:hover { background: #233f68; }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
-        .video-container iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
+  .btn-gold {
+    background: var(--gold);
+    color: var(--blue);
+  }
 
-        .transcription-panel {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
+  .btn-gold:hover { background: #b8963e; }
 
-        .transcription-panel h3 {
-            margin-bottom: 15px;
-            color: #2a5298;
-        }
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--ink);
+  }
 
-        .caption-line {
-            background: white;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-            transition: all 0.3s;
-        }
+  .btn-outline:hover { border-color: var(--gold); color: var(--blue); }
 
-        .caption-line.active {
-            background: #e8eaf6;
-            border-left-color: #ff6b6b;
-            transform: translateX(5px);
-        }
+  .btn-danger {
+    background: var(--red);
+    color: #fff;
+  }
 
-        .caption-german {
-            font-size: 1.1em;
-            font-weight: 600;
-            color: #1e3c72;
-            margin-bottom: 8px;
-            line-height: 1.5;
-        }
+  .btn-danger:hover { background: #a93226; }
 
-        .caption-english {
-            font-size: 0.95em;
-            color: #666;
-            font-style: italic;
-        }
+  .btn-green {
+    background: var(--green);
+    color: #fff;
+  }
 
-        .timestamp {
-            font-size: 0.85em;
-            color: #999;
-            margin-bottom: 5px;
-        }
+  .btn-green:hover { background: #245f49; }
 
-        .word {
-            cursor: pointer;
-            padding: 2px 4px;
-            border-radius: 3px;
-            transition: background 0.2s;
-        }
+  /* ─── VIDEO ───────────────────────────────── */
+  .video-wrap {
+    background: #000;
+    aspect-ratio: 16/9;
+    max-height: 260px;
+    position: relative;
+    flex-shrink: 0;
+  }
 
-        .word:hover {
-            background: #fff3cd;
-        }
+  .video-wrap iframe {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
 
-        .word.saved {
-            background: #d4edda;
-        }
+  .video-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #555;
+    gap: 8px;
+    font-size: 0.9rem;
+  }
 
-        .sidebar {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-        }
+  .video-placeholder .icon { font-size: 2.5rem; }
 
-        .sidebar h3 {
-            color: #2a5298;
-            margin-bottom: 15px;
-        }
+  /* ─── MIC RECORDER ────────────────────────── */
+  .recorder-bar {
+    background: var(--cream);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
 
-        .vocab-list {
-            max-height: 600px;
-            overflow-y: auto;
-        }
+  .recorder-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+  }
 
-        .vocab-item {
-            background: white;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 6px;
-            border-left: 3px solid #667eea;
-        }
+  .rec-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--red);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
 
-        .vocab-word {
-            font-weight: 600;
-            color: #1e3c72;
-            margin-bottom: 4px;
-        }
+  .rec-dot.active {
+    opacity: 1;
+    animation: blink 1s infinite;
+  }
 
-        .vocab-translation {
-            font-size: 0.9em;
-            color: #666;
-        }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
 
-        .vocab-clear {
-            margin-top: 10px;
-            width: 100%;
-            padding: 10px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
+  .lang-select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    padding: 7px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+  }
 
-        .vocab-clear:hover {
-            background: #c82333;
-        }
+  /* ─── TRANSCRIPT AREA ─────────────────────── */
+  .transcript-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    background: #fff;
+    position: relative;
+  }
 
-        .save-subtitles-btn {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
+  .transcript-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--muted);
+    gap: 10px;
+    text-align: center;
+  }
 
-        .save-subtitles-btn:hover {
-            background: #218838;
-        }
+  .transcript-empty .big-icon { font-size: 3rem; }
+  .transcript-empty p { font-size: 0.9rem; max-width: 320px; line-height: 1.6; }
 
-        .saved-subtitles-section {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
-        }
+  .transcript-block {
+    margin-bottom: 22px;
+    animation: fadeUp 0.3s ease;
+  }
 
-        .saved-subtitle-item {
-            background: white;
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 8px;
-            border-left: 3px solid #28a745;
-        }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
-        .saved-subtitle-meta {
-            font-size: 0.8em;
-            color: #777;
-            margin-top: 4px;
-            word-break: break-all;
-        }
+  .transcript-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 5px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
 
-        .saved-subtitle-actions {
-            display: flex;
-            gap: 6px;
-            margin-top: 8px;
-        }
+  .transcript-text {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--ink);
+    background: #faf9f5;
+    border-left: 3px solid var(--gold);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
 
-        .saved-subtitle-actions button {
-            flex: 1;
-            padding: 6px;
-            border: 1px solid #667eea;
-            border-radius: 4px;
-            background: white;
-            color: #667eea;
-            cursor: pointer;
-            font-size: 0.8em;
-        }
+  .transcript-text.has-errors {
+    border-left-color: var(--red);
+  }
 
-        .saved-subtitle-actions button.delete {
-            border-color: #dc3545;
-            color: #dc3545;
-        }
+  .grammar-note {
+    margin-top: 8px;
+    font-size: 0.83rem;
+    color: var(--blue);
+    background: #eef3fa;
+    border: 1px solid #c5d5e8;
+    padding: 10px 14px;
+    border-radius: 6px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
 
-        .status {
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-        }
+  .grammar-note .grammar-title {
+    font-weight: 700;
+    color: var(--blue);
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
 
-        .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
+  /* ─── INLINE ACTIONS ──────────────────────── */
+  .block-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
 
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-        }
+  .block-actions button {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
 
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-        }
+  .block-actions button:hover {
+    border-color: var(--gold);
+    color: var(--blue);
+  }
 
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #666;
-        }
+  .block-actions button.loading {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
-        .no-captions-help {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 15px 0;
-        }
+  /* ─── LIVE PREVIEW ────────────────────────── */
+  .live-preview {
+    padding: 10px 24px;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.83rem;
+    color: var(--muted);
+    min-height: 38px;
+    font-style: italic;
+  }
 
-        .no-captions-help h4 {
-            color: #856404;
-            margin-bottom: 10px;
-        }
+  /* ─── STATUS BAR ──────────────────────────── */
+  .status-bar {
+    padding: 6px 24px;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-top: 1px solid var(--border);
+    background: var(--cream);
+    min-height: 32px;
+  }
 
-        .no-captions-help p {
-            color: #856404;
-            line-height: 1.6;
-            margin-bottom: 10px;
-        }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
 
-        .suggested-channels {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 15px;
-        }
+  .status-dot.ok { background: var(--green); }
+  .status-dot.err { background: var(--red); }
+  .status-dot.busy { background: var(--gold); animation: blink 0.8s infinite; }
 
-        .suggested-channels h5 {
-            color: #2a5298;
-            margin-bottom: 10px;
-        }
+  .status-text { color: var(--muted); }
 
-        .channel-link {
-            display: block;
-            padding: 8px;
-            margin: 5px 0;
-            background: #f8f9fa;
-            border-radius: 4px;
-            color: #667eea;
-            text-decoration: none;
-            transition: background 0.2s;
-        }
+  /* ─── SIDEBAR ─────────────────────────────── */
+  .sidebar {
+    border-left: 2px solid var(--border);
+    background: var(--paper);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
 
-        .channel-link:hover {
-            background: #e8eaf6;
-        }
+  .sidebar-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
+  .sidebar-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    color: var(--blue);
+  }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+  .saved-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    background: var(--gold);
+    color: var(--blue);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
 
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
+  .sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 
-        .control-btn {
-            flex: 1;
-            padding: 10px;
-            border: 2px solid #667eea;
-            background: white;
-            color: #667eea;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
+  .saved-card {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    transition: border-color 0.2s;
+    animation: fadeUp 0.25s ease;
+  }
 
-        .control-btn:hover {
-            background: #667eea;
-            color: white;
-        }
+  .saved-card:hover { border-color: var(--gold); }
 
-        .control-btn.active {
-            background: #667eea;
-            color: white;
-        }
-    </style>
+  .saved-card-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .saved-card-text {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--ink);
+    max-height: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+
+  .saved-card-actions {
+    display: flex;
+    gap: 5px;
+    margin-top: 8px;
+  }
+
+  .saved-card-actions button {
+    flex: 1;
+    font-size: 0.72rem;
+    padding: 5px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+
+  .saved-card-actions button:hover {
+    border-color: var(--gold);
+    color: var(--blue);
+  }
+
+  .saved-card-actions button.del:hover {
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  .sidebar-empty {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 30px 10px;
+    line-height: 1.6;
+  }
+
+  .sidebar-footer {
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+  }
+
+  /* ─── GRAMMAR MODAL ───────────────────────── */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,20,0.55);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .overlay.active { display: flex; }
+
+  .modal {
+    background: #fff;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 560px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+  }
+
+  .modal-header {
+    background: var(--blue);
+    color: #fff;
+    padding: 18px 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.15rem;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.3rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+
+  .modal-close:hover { opacity: 1; }
+
+  .modal-body {
+    padding: 22px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .modal-text-box {
+    width: 100%;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    resize: vertical;
+    min-height: 120px;
+    outline: none;
+    color: var(--ink);
+    transition: border-color 0.2s;
+  }
+
+  .modal-text-box:focus { border-color: var(--gold); }
+
+  .grammar-result {
+    margin-top: 16px;
+    background: #f0f5ff;
+    border: 1px solid #c5d5e8;
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--blue);
+    white-space: pre-wrap;
+  }
+
+  .grammar-spinner {
+    text-align: center;
+    padding: 20px;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .modal-footer {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  /* ─── SCROLLBAR ───────────────────────────── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🇩🇪 YouTube German Learning Transcriber</h1>
-            <p>Learn German by watching YouTube videos with real-time transcriptions and translations</p>
-        </div>
 
-        <div class="main-content">
-            <div class="video-section">
-                <div class="input-group">
-                    <input 
-                        type="text" 
-                        id="videoUrl" 
-                        placeholder="Paste YouTube URL here (e.g., https://www.youtube.com/watch?v=...)"
-                    />
-                    <button class="btn" id="loadBtn">Load Video</button>
-                </div>
+<header>
+  <div class="logo">Audio<span>Script</span></div>
+  <div class="tagline">YouTube Transcriber · Grammar Check · Save &amp; Review</div>
+</header>
 
-                <div id="statusMsg"></div>
+<div class="app">
+  <!-- ── MAIN ── -->
+  <div class="main">
 
-                <div class="video-container" id="videoContainer" style="display: none;">
-                    <iframe id="videoFrame" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                </div>
-
-                <div class="controls" id="controls" style="display: none;">
-                    <button class="control-btn" id="autoScrollBtn">Auto-scroll: ON</button>
-                    <button class="control-btn" id="showTranslationBtn">Translations: ON</button>
-                </div>
-
-                <div class="transcription-panel" id="transcriptionPanel" style="display: none;">
-                    <h3>📝 Live Transcription</h3>
-                    <div id="captions"></div>
-                </div>
-            </div>
-
-            <div class="sidebar">
-                <h3>📚 My Vocabulary</h3>
-                <div class="vocab-list" id="vocabList">
-                    <p style="color: #999; text-align: center;">Click on German words in the transcription to save them here!</p>
-                </div>
-                <button class="vocab-clear" id="clearVocab" style="display: none;">Clear All</button>
-                <button class="save-subtitles-btn" id="saveSubtitlesBtn" style="display: none;">Save Current Subtitles</button>
-
-                <div class="saved-subtitles-section">
-                    <h3>💾 Saved Subtitles</h3>
-                    <div class="vocab-list" id="savedSubtitlesList">
-                        <p style="color: #999; text-align: center;">Saved subtitles will appear here.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="url-row">
+        <input class="url-input" id="urlInput" type="text" placeholder="Paste YouTube URL — or use mic to record audio below…" />
+        <button class="btn btn-primary" id="loadBtn">▶ Load</button>
+      </div>
+      <button class="btn btn-outline" id="clearTranscriptBtn">✕ Clear</button>
+      <button class="btn btn-gold" id="saveAllBtn">💾 Save All</button>
     </div>
 
-    <script>
-        let captions = [];
-        let savedVocab = JSON.parse(localStorage.getItem('germanVocab') || '[]');
-        let savedSubtitles = JSON.parse(localStorage.getItem('savedSubtitles') || '[]');
-        let currentVideoId = null;
-        let currentVideoUrl = null;
-        let autoScroll = true;
-        let showTranslations = true;
-        let updateInterval = null;
+    <!-- Video -->
+    <div class="video-wrap" id="videoWrap">
+      <div class="video-placeholder" id="videoPlaceholder">
+        <div class="icon">🎬</div>
+        <span>Paste a YouTube URL above to load the video</span>
+      </div>
+      <iframe id="videoFrame" style="display:none" frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen></iframe>
+    </div>
 
-        const elements = {
-            videoUrl: document.getElementById('videoUrl'),
-            loadBtn: document.getElementById('loadBtn'),
-            statusMsg: document.getElementById('statusMsg'),
-            videoContainer: document.getElementById('videoContainer'),
-            videoFrame: document.getElementById('videoFrame'),
-            transcriptionPanel: document.getElementById('transcriptionPanel'),
-            captions: document.getElementById('captions'),
-            vocabList: document.getElementById('vocabList'),
-            clearVocab: document.getElementById('clearVocab'),
-            saveSubtitlesBtn: document.getElementById('saveSubtitlesBtn'),
-            savedSubtitlesList: document.getElementById('savedSubtitlesList'),
-            controls: document.getElementById('controls'),
-            autoScrollBtn: document.getElementById('autoScrollBtn'),
-            showTranslationBtn: document.getElementById('showTranslationBtn')
-        };
+    <!-- Recorder Bar -->
+    <div class="recorder-bar">
+      <span class="recorder-label">🎙 Live Mic</span>
+      <div class="rec-dot" id="recDot"></div>
+      <select class="lang-select" id="langSelect">
+        <option value="de-DE">🇩🇪 German</option>
+        <option value="en-US">🇬🇧 English</option>
+        <option value="fr-FR">🇫🇷 French</option>
+        <option value="es-ES">🇪🇸 Spanish</option>
+        <option value="it-IT">🇮🇹 Italian</option>
+        <option value="ja-JP">🇯🇵 Japanese</option>
+        <option value="zh-CN">🇨🇳 Chinese</option>
+      </select>
+      <button class="btn btn-green" id="micBtn">🎙 Start Recording</button>
+      <button class="btn btn-outline" id="grammarAllBtn">✍ Grammar Check All</button>
+    </div>
 
-        function extractVideoId(url) {
-            const patterns = [
-                /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
-                /youtube\.com\/embed\/([^&\n?#]+)/
-            ];
-            
-            for (let pattern of patterns) {
-                const match = url.match(pattern);
-                if (match) return match[1];
-            }
-            return null;
+    <!-- Transcript Area -->
+    <div class="transcript-area" id="transcriptArea">
+      <div class="transcript-empty" id="emptyState">
+        <div class="big-icon">📄</div>
+        <p>Your transcription will appear here.<br>Start recording with the mic button, or load a YouTube video — subtitles will be fetched automatically.</p>
+      </div>
+    </div>
+
+    <!-- Live Preview -->
+    <div class="live-preview" id="livePreview">Waiting for speech…</div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-text" id="statusText">Ready</span>
+    </div>
+
+  </div>
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Saved Transcripts</span>
+      <span class="saved-count" id="savedCount">0</span>
+    </div>
+    <div class="sidebar-list" id="sidebarList">
+      <div class="sidebar-empty">No saved transcripts yet.<br>Record or load a video, then save.</div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-outline" style="flex:1;font-size:0.78rem" id="exportBtn">⬇ Export JSON</button>
+      <button class="btn btn-danger" style="flex:1;font-size:0.78rem" id="clearSavedBtn">🗑 Clear Saved</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── GRAMMAR MODAL ── -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">✍ Grammar Check</span>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <textarea class="modal-text-box" id="modalText" placeholder="Paste or type text to grammar check…" rows="5"></textarea>
+      <div id="grammarResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="modalClose2">Cancel</button>
+      <button class="btn btn-primary" id="grammarCheckBtn">Check Grammar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────────
+let blocks = []; // {id, text, time, lang, grammarNote}
+let savedTranscripts = JSON.parse(localStorage.getItem('audioscript_saved') || '[]');
+let recognition = null;
+let isRecording = false;
+let currentInterim = '';
+let blockIdCounter = 0;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function uid() { return `b${++blockIdCounter}_${Date.now()}`; }
+
+function formatTime(d) {
+  return d.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+function setStatus(msg, type = '') {
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot' + (type ? ' ' + type : '');
+  document.getElementById('statusText').textContent = msg;
+}
+
+function showEmpty(show) {
+  document.getElementById('emptyState').style.display = show ? 'flex' : 'none';
+}
+
+// ── TRANSCRIPT BLOCKS ─────────────────────────────────────────────────────────
+function addBlock(text, lang = 'de-DE') {
+  if (!text.trim()) return;
+  const block = { id: uid(), text: text.trim(), time: new Date(), lang, grammarNote: null };
+  blocks.push(block);
+  showEmpty(false);
+  renderBlock(block);
+  return block;
+}
+
+function renderBlock(block) {
+  const area = document.getElementById('transcriptArea');
+
+  const div = document.createElement('div');
+  div.className = 'transcript-block';
+  div.id = `block-${block.id}`;
+
+  const langLabel = {'de-DE':'🇩🇪 DE','en-US':'🇬🇧 EN','fr-FR':'🇫🇷 FR','es-ES':'🇪🇸 ES','it-IT':'🇮🇹 IT','ja-JP':'🇯🇵 JA','zh-CN':'🇨🇳 ZH'}[block.lang] || block.lang;
+
+  div.innerHTML = `
+    <div class="transcript-meta">
+      <span>${formatTime(block.time)}</span>
+      <span>${langLabel}</span>
+    </div>
+    <div class="transcript-text" id="text-${block.id}">${escHtml(block.text)}</div>
+    <div class="block-actions">
+      <button onclick="openGrammarModal('${block.id}')">✍ Grammar Check</button>
+      <button onclick="saveBlock('${block.id}')">💾 Save</button>
+      <button onclick="copyBlock('${block.id}')">📋 Copy</button>
+      <button onclick="deleteBlock('${block.id}')" style="margin-left:auto;color:var(--red)">✕</button>
+    </div>
+    <div id="grammar-${block.id}"></div>
+  `;
+
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function deleteBlock(id) {
+  blocks = blocks.filter(b => b.id !== id);
+  const el = document.getElementById(`block-${id}`);
+  if (el) el.remove();
+  if (blocks.length === 0) showEmpty(true);
+}
+
+function copyBlock(id) {
+  const block = blocks.find(b => b.id === id);
+  if (!block) return;
+  navigator.clipboard.writeText(block.text).then(() => setStatus('Copied to clipboard', 'ok'));
+}
+
+function saveBlock(id) {
+  const block = blocks.find(b => b.id === id);
+  if (!block) return;
+  const entry = {
+    id: block.id,
+    text: block.text,
+    lang: block.lang,
+    time: block.time.toISOString(),
+    grammarNote: block.grammarNote
+  };
+  // avoid duplicate
+  savedTranscripts = savedTranscripts.filter(s => s.id !== id);
+  savedTranscripts.unshift(entry);
+  localStorage.setItem('audioscript_saved', JSON.stringify(savedTranscripts));
+  renderSidebar();
+  setStatus('Block saved', 'ok');
+}
+
+// ── SAVE ALL ──────────────────────────────────────────────────────────────────
+document.getElementById('saveAllBtn').addEventListener('click', () => {
+  if (blocks.length === 0) { setStatus('Nothing to save', 'err'); return; }
+  blocks.forEach(b => saveBlock(b.id));
+  setStatus(`Saved ${blocks.length} block(s)`, 'ok');
+});
+
+// ── CLEAR TRANSCRIPT ──────────────────────────────────────────────────────────
+document.getElementById('clearTranscriptBtn').addEventListener('click', () => {
+  if (blocks.length && !confirm('Clear all transcript blocks?')) return;
+  blocks = [];
+  const area = document.getElementById('transcriptArea');
+  // remove all block divs
+  area.querySelectorAll('.transcript-block').forEach(el => el.remove());
+  showEmpty(true);
+  setStatus('Cleared');
+});
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function renderSidebar() {
+  const list = document.getElementById('sidebarList');
+  document.getElementById('savedCount').textContent = savedTranscripts.length;
+
+  if (savedTranscripts.length === 0) {
+    list.innerHTML = '<div class="sidebar-empty">No saved transcripts yet.<br>Record or load a video, then save.</div>';
+    return;
+  }
+
+  list.innerHTML = savedTranscripts.map(s => {
+    const d = new Date(s.time);
+    return `
+      <div class="saved-card">
+        <div class="saved-card-meta">
+          <span>${d.toLocaleDateString()} ${d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span>
+          <span>${s.lang || ''}</span>
+        </div>
+        <div class="saved-card-text">${escHtml(s.text)}</div>
+        <div class="saved-card-actions">
+          <button onclick="loadSavedToArea('${s.id}')">📄 Load</button>
+          <button onclick="copySaved('${s.id}')">📋 Copy</button>
+          <button onclick="grammarSaved('${s.id}')">✍ Grammar</button>
+          <button class="del" onclick="deleteSaved('${s.id}')">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function deleteSaved(id) {
+  savedTranscripts = savedTranscripts.filter(s => s.id !== id);
+  localStorage.setItem('audioscript_saved', JSON.stringify(savedTranscripts));
+  renderSidebar();
+}
+
+function copySaved(id) {
+  const s = savedTranscripts.find(x => x.id === id);
+  if (!s) return;
+  navigator.clipboard.writeText(s.text).then(() => setStatus('Copied', 'ok'));
+}
+
+function loadSavedToArea(id) {
+  const s = savedTranscripts.find(x => x.id === id);
+  if (!s) return;
+  const block = { id: s.id, text: s.text, time: new Date(s.time), lang: s.lang, grammarNote: s.grammarNote };
+  // only add if not already in area
+  if (!blocks.find(b => b.id === s.id)) {
+    blocks.push(block);
+    showEmpty(false);
+    renderBlock(block);
+  }
+}
+
+function grammarSaved(id) {
+  const s = savedTranscripts.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('modalText').value = s.text;
+  document.getElementById('grammarResult').innerHTML = '';
+  document.getElementById('overlay').classList.add('active');
+}
+
+document.getElementById('clearSavedBtn').addEventListener('click', () => {
+  if (!savedTranscripts.length) return;
+  if (!confirm('Delete all saved transcripts?')) return;
+  savedTranscripts = [];
+  localStorage.removeItem('audioscript_saved');
+  renderSidebar();
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const json = JSON.stringify(savedTranscripts, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `audioscript_${Date.now()}.json`;
+  a.click();
+});
+
+// ── YOUTUBE LOAD ──────────────────────────────────────────────────────────────
+function extractVideoId(url) {
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+  return m ? m[1] : null;
+}
+
+document.getElementById('loadBtn').addEventListener('click', async () => {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) { setStatus('Paste a YouTube URL first', 'err'); return; }
+  const vid = extractVideoId(url);
+  if (!vid) { setStatus('Invalid YouTube URL', 'err'); return; }
+
+  // Show iframe
+  const frame = document.getElementById('videoFrame');
+  frame.src = `https://www.youtube.com/embed/${vid}?enablejsapi=1`;
+  frame.style.display = 'block';
+  document.getElementById('videoPlaceholder').style.display = 'none';
+
+  setStatus('Loading video…', 'busy');
+
+  // Try to fetch captions
+  try {
+    const captions = await fetchYTCaptions(vid);
+    if (captions && captions.length > 0) {
+      const fullText = captions.map(c => c.text).join(' ');
+      addBlock(fullText, 'de-DE');
+      setStatus(`Loaded ${captions.length} caption lines from YouTube`, 'ok');
+    } else {
+      setStatus('Video loaded — no subtitles found. Use mic to transcribe audio.', '');
+    }
+  } catch(e) {
+    setStatus('Video loaded — subtitles unavailable. Use mic to transcribe.', '');
+  }
+});
+
+async function fetchYTCaptions(videoId) {
+  const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
+  const html = await response.text();
+  const captionMatch = html.match(/"captions":(\{.*?\}\}\})/s);
+  if (!captionMatch) return [];
+  try {
+    const data = JSON.parse(captionMatch[1]);
+    const tracks = data.playerCaptionsTracklistRenderer?.captionTracks || [];
+    if (!tracks.length) return [];
+    const deTrack = tracks.find(t => t.languageCode?.startsWith('de')) || tracks[0];
+    const capResp = await fetch(deTrack.baseUrl);
+    const xml = await capResp.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xml, 'text/xml');
+    return Array.from(doc.getElementsByTagName('text')).map(el => ({
+      start: parseFloat(el.getAttribute('start')),
+      text: el.textContent.replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
+    }));
+  } catch { return []; }
+}
+
+// ── MICROPHONE / SPEECH RECOGNITION ──────────────────────────────────────────
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+document.getElementById('micBtn').addEventListener('click', () => {
+  if (!SpeechRecognition) {
+    alert('Your browser does not support Speech Recognition.\nPlease use Google Chrome or Microsoft Edge.');
+    return;
+  }
+  if (isRecording) stopRecording();
+  else startRecording();
+});
+
+function startRecording() {
+  const lang = document.getElementById('langSelect').value;
+  recognition = new SpeechRecognition();
+  recognition.lang = lang;
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    isRecording = true;
+    document.getElementById('micBtn').textContent = '⏹ Stop Recording';
+    document.getElementById('micBtn').style.background = 'var(--red)';
+    document.getElementById('recDot').classList.add('active');
+    setStatus('Recording…', 'busy');
+    document.getElementById('livePreview').textContent = 'Listening…';
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    let final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += t;
+      else interim += t;
+    }
+    if (final) {
+      addBlock(final, lang);
+      document.getElementById('livePreview').textContent = 'Waiting…';
+    }
+    if (interim) {
+      document.getElementById('livePreview').textContent = interim;
+    }
+  };
+
+  recognition.onerror = (e) => {
+    setStatus(`Mic error: ${e.error}`, 'err');
+  };
+
+  recognition.onend = () => {
+    if (isRecording) {
+      // auto-restart for continuous
+      recognition.start();
+    } else {
+      document.getElementById('recDot').classList.remove('active');
+      document.getElementById('micBtn').textContent = '🎙 Start Recording';
+      document.getElementById('micBtn').style.background = '';
+      setStatus('Recording stopped', '');
+      document.getElementById('livePreview').textContent = 'Waiting for speech…';
+    }
+  };
+
+  recognition.start();
+}
+
+function stopRecording() {
+  isRecording = false;
+  if (recognition) { recognition.stop(); recognition = null; }
+}
+
+// ── GRAMMAR CHECK ─────────────────────────────────────────────────────────────
+async function checkGrammarWithClaude(text) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: `You are a precise grammar and language assistant. When given text, you:
+1. Identify grammar errors (if any)
+2. Point out awkward phrasing
+3. Suggest corrections
+4. Give a brief corrected version if needed
+Be concise. Format: list issues with ❌, then show ✅ corrected version. If the text is correct, say "✅ No issues found." only.`,
+      messages: [{ role: 'user', content: `Check this text for grammar:\n\n${text}` }]
+    })
+  });
+  const data = await response.json();
+  return data.content?.[0]?.text || 'No response from grammar checker.';
+}
+
+// Per-block grammar check
+async function openGrammarModal(blockId) {
+  const block = blocks.find(b => b.id === blockId);
+  if (!block) return;
+  document.getElementById('modalText').value = block.text;
+  document.getElementById('grammarResult').innerHTML = '';
+  document.getElementById('overlay').classList.add('active');
+
+  // auto-trigger check
+  await runGrammarCheck(block.id);
+}
+
+async function runGrammarCheck(blockId) {
+  const text = document.getElementById('modalText').value.trim();
+  if (!text) return;
+
+  document.getElementById('grammarResult').innerHTML = '<div class="grammar-spinner">🔍 Checking with Claude AI…</div>';
+  document.getElementById('grammarCheckBtn').disabled = true;
+
+  try {
+    const result = await checkGrammarWithClaude(text);
+    document.getElementById('grammarResult').innerHTML = `<div class="grammar-result">${escHtml(result)}</div>`;
+
+    // also update block
+    if (blockId) {
+      const block = blocks.find(b => b.id === blockId);
+      if (block) {
+        block.grammarNote = result;
+        const noteEl = document.getElementById(`grammar-${blockId}`);
+        if (noteEl) {
+          noteEl.innerHTML = `<div class="grammar-note"><span class="grammar-title">Grammar Check</span>${escHtml(result)}</div>`;
         }
+      }
+    }
+  } catch(e) {
+    document.getElementById('grammarResult').innerHTML = `<div class="grammar-result" style="color:var(--red)">Error: Could not reach Claude API. Make sure you have API access.</div>`;
+  }
+  document.getElementById('grammarCheckBtn').disabled = false;
+}
 
-        function showStatus(message, type = 'info') {
-            elements.statusMsg.innerHTML = `<div class="status ${type}">${message}</div>`;
-        }
+document.getElementById('grammarCheckBtn').addEventListener('click', () => runGrammarCheck(null));
 
-        function renderNoCaptionsState(message) {
-            elements.captions.innerHTML = `
-                <div class="no-captions-help">
-                    <h4>⚠️ No Subtitles Available</h4>
-                    <p>${message}</p>
-                    <p><strong>Tip:</strong> Look for videos with the "CC" (closed captions) icon on YouTube thumbnails.</p>
-                    
-                    <div class="suggested-channels">
-                        <h5>🎓 Recommended German Learning Channels:</h5>
-                        <a href="https://www.youtube.com/@EasyGerman" target="_blank" class="channel-link">
-                            📺 Easy German - Street interviews with German & English subs
-                        </a>
-                        <a href="https://www.youtube.com/@DWDeutschlernen" target="_blank" class="channel-link">
-                            📺 DW Deutsch Lernen - Official German learning content
-                        </a>
-                        <a href="https://www.youtube.com/@LearnGermanwithAnja" target="_blank" class="channel-link">
-                            📺 Learn German with Anja - Grammar and vocabulary lessons
-                        </a>
-                        <a href="https://www.youtube.com/@GetGermanized" target="_blank" class="channel-link">
-                            📺 Get Germanized - Culture and language tips
-                        </a>
-                        <a href="https://www.youtube.com/@lingoni" target="_blank" class="channel-link">
-                            📺 lingoni GERMAN - Structured learning content
-                        </a>
-                    </div>
-                </div>
-            `;
-        }
+// Grammar check ALL blocks
+document.getElementById('grammarAllBtn').addEventListener('click', async () => {
+  if (blocks.length === 0) { setStatus('No blocks to check', 'err'); return; }
+  setStatus('Checking grammar for all blocks…', 'busy');
+  for (const block of blocks) {
+    try {
+      const result = await checkGrammarWithClaude(block.text);
+      block.grammarNote = result;
+      const noteEl = document.getElementById(`grammar-${block.id}`);
+      if (noteEl) {
+        noteEl.innerHTML = `<div class="grammar-note"><span class="grammar-title">Grammar Check</span>${escHtml(result)}</div>`;
+      }
+    } catch {}
+  }
+  setStatus('Grammar check complete', 'ok');
+});
 
-        function getSavedSubtitleByVideo(videoId) {
-            return savedSubtitles.find(s => s.videoId === videoId);
-        }
+// Modal close
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalClose2').addEventListener('click', closeModal);
+document.getElementById('overlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('overlay')) closeModal();
+});
 
-        function saveCurrentSubtitles() {
-            if (!currentVideoId || captions.length === 0) return;
+function closeModal() {
+  document.getElementById('overlay').classList.remove('active');
+}
 
-            const existingIndex = savedSubtitles.findIndex(s => s.videoId === currentVideoId);
-            const subtitle = {
-                videoId: currentVideoId,
-                videoUrl: currentVideoUrl,
-                captions: captions,
-                savedAt: Date.now()
-            };
-
-            if (existingIndex >= 0) {
-                savedSubtitles[existingIndex] = subtitle;
-            } else {
-                savedSubtitles.push(subtitle);
-            }
-
-            localStorage.setItem('savedSubtitles', JSON.stringify(savedSubtitles));
-            renderSavedSubtitles();
-            showStatus('✅ Subtitles saved successfully!', 'success');
-        }
-
-        function loadSavedSubtitle(videoId) {
-            const saved = getSavedSubtitleByVideo(videoId);
-            if (!saved) return;
-
-            currentVideoId = saved.videoId;
-            currentVideoUrl = saved.videoUrl;
-            captions = saved.captions;
-
-            elements.videoUrl.value = saved.videoUrl;
-            elements.videoFrame.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
-            elements.videoContainer.style.display = 'block';
-            elements.controls.style.display = 'flex';
-            elements.transcriptionPanel.style.display = 'block';
-            elements.saveSubtitlesBtn.style.display = 'block';
-
-            renderCaptions();
-            showStatus('✅ Loaded saved subtitles', 'success');
-        }
-
-        function deleteSavedSubtitle(videoId) {
-            if (!confirm('Delete this saved subtitle?')) return;
-
-            savedSubtitles = savedSubtitles.filter(s => s.videoId !== videoId);
-            localStorage.setItem('savedSubtitles', JSON.stringify(savedSubtitles));
-            renderSavedSubtitles();
-            showStatus('Subtitle deleted', 'info');
-        }
-
-        function renderSavedSubtitles() {
-            if (savedSubtitles.length === 0) {
-                elements.savedSubtitlesList.innerHTML = '<p style="color: #999; text-align: center;">Saved subtitles will appear here.</p>';
-                return;
-            }
-
-            const html = savedSubtitles.slice().reverse().map(item => {
-                const date = new Date(item.savedAt).toLocaleDateString();
-                return `
-                    <div class="saved-subtitle-item">
-                        <div class="vocab-word">Video: ${item.videoId}</div>
-                        <div class="saved-subtitle-meta">${date} • ${item.captions.length} lines</div>
-                        <div class="saved-subtitle-actions">
-                            <button onclick="loadSavedSubtitle('${item.videoId}')">Load</button>
-                            <button class="delete" onclick="deleteSavedSubtitle('${item.videoId}')">Delete</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            elements.savedSubtitlesList.innerHTML = html;
-        }
-
-        async function checkSubtitlesAvailable(videoId) {
-            try {
-                const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
-                const html = await response.text();
-                
-                const captionMatch = html.match(/"captions":({.*?}]}})/);
-                if (!captionMatch) return false;
-
-                const captionsData = JSON.parse(captionMatch[1]);
-                const tracks = captionsData.playerCaptionsTracklistRenderer?.captionTracks || [];
-                
-                return tracks.length > 0;
-            } catch (error) {
-                return false;
-            }
-        }
-
-        async function fetchCaptions(videoId) {
-            showStatus('Fetching German captions...', 'info');
-            
-            try {
-                // Using YouTube's transcript API endpoint
-                const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
-                const html = await response.text();
-                
-                // Extract caption tracks from page
-                const captionMatch = html.match(/"captions":({.*?}]}})/);
-                if (!captionMatch) {
-                    showStatus('This video has no subtitle track. You can still watch it, but transcript/translation will be unavailable.', 'info');
-                    return [];
-                }
-
-                const captionsData = JSON.parse(captionMatch[1]);
-                const tracks = captionsData.playerCaptionsTracklistRenderer?.captionTracks || [];
-                
-                // Find German captions
-                const germanTrack = tracks.find(t => t.languageCode.startsWith('de')) || tracks[0];
-                
-                if (!germanTrack) {
-                    showStatus('No subtitle tracks found for this video. Transcript/translation is unavailable.', 'info');
-                    return [];
-                }
-
-                // Fetch caption content
-                const captionResponse = await fetch(germanTrack.baseUrl);
-                const captionXml = await captionResponse.text();
-                
-                // Parse XML captions
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(captionXml, 'text/xml');
-                const textElements = xmlDoc.getElementsByTagName('text');
-                
-                const parsedCaptions = Array.from(textElements).map(el => {
-                    const start = parseFloat(el.getAttribute('start'));
-                    const duration = parseFloat(el.getAttribute('dur') || '0');
-                    const text = el.textContent.replace(/&amp;/g, '&')
-                                               .replace(/&lt;/g, '<')
-                                               .replace(/&gt;/g, '>')
-                                               .replace(/&#39;/g, "'")
-                                               .replace(/&quot;/g, '"');
-                    
-                    return {
-                        start,
-                        end: start + duration,
-                        text,
-                        german: text,
-                        english: null // Will be translated
-                    };
-                });
-
-                showStatus(`✅ Loaded ${parsedCaptions.length} caption lines!`, 'success');
-                return parsedCaptions;
-                
-            } catch (error) {
-                showStatus('Could not load subtitles for this video. The video still loads normally.', 'info');
-                console.error('Caption fetch error:', error);
-                return [];
-            }
-        }
-
-        async function translateText(text) {
-            try {
-                // Simple translation using LibreTranslate or similar free API
-                // For production, you'd want to use a proper translation API
-                const response = await fetch('https://libretranslate.com/translate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        q: text,
-                        source: 'de',
-                        target: 'en',
-                        format: 'text'
-                    })
-                });
-                
-                const data = await response.json();
-                return data.translatedText;
-            } catch (error) {
-                return '[Translation unavailable]';
-            }
-        }
-
-        async function translateCaptions(captionList) {
-            const translated = [];
-            for (let caption of captionList) {
-                const translation = await translateText(caption.german);
-                translated.push({
-                    ...caption,
-                    english: translation
-                });
-            }
-            return translated;
-        }
-
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${mins}:${secs.toString().padStart(2, '0')}`;
-        }
-
-        function makeWordsClickable(text, captionIndex) {
-            return text.split(/\s+/).map((word, idx) => {
-                const cleanWord = word.replace(/[.,!?;:]/g, '');
-                const isSaved = savedVocab.some(v => v.word.toLowerCase() === cleanWord.toLowerCase());
-                return `<span class="word ${isSaved ? 'saved' : ''}" data-word="${cleanWord}" data-caption="${captionIndex}">${word}</span>`;
-            }).join(' ');
-        }
-
-        function renderCaptions() {
-            if (captions.length === 0) {
-                elements.captions.innerHTML = '<div class="loading">No captions loaded yet</div>';
-                return;
-            }
-
-            const html = captions.map((caption, index) => `
-                <div class="caption-line" id="caption-${index}">
-                    <div class="timestamp">${formatTime(caption.start)}</div>
-                    <div class="caption-german">${makeWordsClickable(caption.german, index)}</div>
-                    ${showTranslations && caption.english ? `<div class="caption-english">${caption.english}</div>` : ''}
-                </div>
-            `).join('');
-
-            elements.captions.innerHTML = html;
-
-            // Add click handlers to words
-            document.querySelectorAll('.word').forEach(el => {
-                el.addEventListener('click', handleWordClick);
-            });
-        }
-
-        async function handleWordClick(e) {
-            const word = e.target.dataset.word;
-            const captionIndex = parseInt(e.target.dataset.caption);
-            const caption = captions[captionIndex];
-
-            if (!word || word.length < 2) return;
-
-            // Check if already saved
-            if (savedVocab.some(v => v.word.toLowerCase() === word.toLowerCase())) {
-                return;
-            }
-
-            // Translate the word
-            const translation = await translateText(word);
-            
-            savedVocab.push({
-                word,
-                translation,
-                context: caption.german,
-                timestamp: Date.now()
-            });
-
-            localStorage.setItem('germanVocab', JSON.stringify(savedVocab));
-            renderVocab();
-            renderCaptions();
-        }
-
-        function renderVocab() {
-            if (savedVocab.length === 0) {
-                elements.vocabList.innerHTML = '<p style="color: #999; text-align: center;">Click on German words in the transcription to save them here!</p>';
-                elements.clearVocab.style.display = 'none';
-                return;
-            }
-
-            const html = savedVocab.slice().reverse().map(item => `
-                <div class="vocab-item">
-                    <div class="vocab-word">${item.word}</div>
-                    <div class="vocab-translation">${item.translation}</div>
-                </div>
-            `).join('');
-
-            elements.vocabList.innerHTML = html;
-            elements.clearVocab.style.display = 'block';
-        }
-
-        elements.loadBtn.addEventListener('click', async () => {
-            const url = elements.videoUrl.value.trim();
-            if (!url) {
-                showStatus('Please enter a YouTube URL', 'error');
-                return;
-            }
-
-            const videoId = extractVideoId(url);
-            if (!videoId) {
-                showStatus('Invalid YouTube URL. Please check and try again.', 'error');
-                return;
-            }
-
-            currentVideoId = videoId;
-            currentVideoUrl = url;
-            elements.loadBtn.disabled = true;
-            elements.loadBtn.textContent = 'Checking...';
-
-            // Check if we have saved subtitles first
-            const savedForVideo = getSavedSubtitleByVideo(videoId);
-            if (savedForVideo) {
-                captions = savedForVideo.captions;
-                elements.videoFrame.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
-                elements.videoContainer.style.display = 'block';
-                elements.controls.style.display = 'flex';
-                elements.transcriptionPanel.style.display = 'block';
-                renderCaptions();
-                elements.saveSubtitlesBtn.style.display = captions.length > 0 ? 'block' : 'none';
-                showStatus('✅ Loaded subtitles from your saved library for this video.', 'success');
-                elements.loadBtn.disabled = false;
-                elements.loadBtn.textContent = 'Load Video';
-                return;
-            }
-
-            // Check if subtitles are available
-            showStatus('🔍 Checking for subtitles...', 'info');
-            const hasSubtitles = await checkSubtitlesAvailable(videoId);
-            
-            if (!hasSubtitles) {
-                showStatus('⚠️ This video has no subtitles available', 'error');
-                elements.videoFrame.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
-                elements.videoContainer.style.display = 'block';
-                elements.controls.style.display = 'flex';
-                elements.transcriptionPanel.style.display = 'block';
-                captions = [];
-                renderNoCaptionsState('The video will still play, but transcription and translation features will not be available.');
-                elements.saveSubtitlesBtn.style.display = 'none';
-                elements.loadBtn.disabled = false;
-                elements.loadBtn.textContent = 'Load Video';
-                return;
-            }
-
-            elements.loadBtn.textContent = 'Loading...';
-
-            // Load video
-            elements.videoFrame.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
-            elements.videoContainer.style.display = 'block';
-            elements.controls.style.display = 'flex';
-            elements.transcriptionPanel.style.display = 'block';
-
-            // Fetch and translate captions
-            captions = await fetchCaptions(videoId);
-            
-            if (captions.length > 0) {
-                elements.captions.innerHTML = '<div class="loading"><div class="spinner"></div>Translating captions...</div>';
-                captions = await translateCaptions(captions);
-                renderCaptions();
-                elements.saveSubtitlesBtn.style.display = 'block';
-            } else {
-                renderNoCaptionsState('Try another video that has German subtitles enabled.');
-                elements.saveSubtitlesBtn.style.display = 'none';
-            }
-
-            elements.loadBtn.disabled = false;
-            elements.loadBtn.textContent = 'Load Video';
-        });
-
-        elements.clearVocab.addEventListener('click', () => {
-            if (confirm('Clear all saved vocabulary?')) {
-                savedVocab = [];
-                localStorage.removeItem('germanVocab');
-                renderVocab();
-                renderCaptions();
-            }
-        });
-
-        elements.saveSubtitlesBtn.addEventListener('click', saveCurrentSubtitles);
-
-        elements.autoScrollBtn.addEventListener('click', () => {
-            autoScroll = !autoScroll;
-            elements.autoScrollBtn.textContent = `Auto-scroll: ${autoScroll ? 'ON' : 'OFF'}`;
-            elements.autoScrollBtn.classList.toggle('active', autoScroll);
-        });
-
-        elements.showTranslationBtn.addEventListener('click', () => {
-            showTranslations = !showTranslations;
-            elements.showTranslationBtn.textContent = `Translations: ${showTranslations ? 'ON' : 'OFF'}`;
-            elements.showTranslationBtn.classList.toggle('active', showTranslations);
-            renderCaptions();
-        });
-
-        // Initial render
-        renderVocab();
-        renderSavedSubtitles();
-    </script>
+// ── INIT ──────────────────────────────────────────────────────────────────────
+renderSidebar();
+setStatus('Ready — paste a URL or press Start Recording');
+</script>
 </body>
 </html>
