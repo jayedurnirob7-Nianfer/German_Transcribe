@@ -326,6 +326,52 @@
             color: #666;
         }
 
+        .no-captions-help {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .no-captions-help h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .no-captions-help p {
+            color: #856404;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .suggested-channels {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+
+        .suggested-channels h5 {
+            color: #2a5298;
+            margin-bottom: 10px;
+        }
+
+        .channel-link {
+            display: block;
+            padding: 8px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 4px;
+            color: #667eea;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .channel-link:hover {
+            background: #e8eaf6;
+        }
+
         .spinner {
             border: 3px solid #f3f3f3;
             border-top: 3px solid #667eea;
@@ -469,9 +515,29 @@
 
         function renderNoCaptionsState(message) {
             elements.captions.innerHTML = `
-                <div class="loading">
-                    <strong>Captions unavailable for this video.</strong><br/>
-                    ${message}
+                <div class="no-captions-help">
+                    <h4>⚠️ No Subtitles Available</h4>
+                    <p>${message}</p>
+                    <p><strong>Tip:</strong> Look for videos with the "CC" (closed captions) icon on YouTube thumbnails.</p>
+                    
+                    <div class="suggested-channels">
+                        <h5>🎓 Recommended German Learning Channels:</h5>
+                        <a href="https://www.youtube.com/@EasyGerman" target="_blank" class="channel-link">
+                            📺 Easy German - Street interviews with German & English subs
+                        </a>
+                        <a href="https://www.youtube.com/@DWDeutschlernen" target="_blank" class="channel-link">
+                            📺 DW Deutsch Lernen - Official German learning content
+                        </a>
+                        <a href="https://www.youtube.com/@LearnGermanwithAnja" target="_blank" class="channel-link">
+                            📺 Learn German with Anja - Grammar and vocabulary lessons
+                        </a>
+                        <a href="https://www.youtube.com/@GetGermanized" target="_blank" class="channel-link">
+                            📺 Get Germanized - Culture and language tips
+                        </a>
+                        <a href="https://www.youtube.com/@lingoni" target="_blank" class="channel-link">
+                            📺 lingoni GERMAN - Structured learning content
+                        </a>
+                    </div>
                 </div>
             `;
         }
@@ -551,6 +617,23 @@
             }).join('');
 
             elements.savedSubtitlesList.innerHTML = html;
+        }
+
+        async function checkSubtitlesAvailable(videoId) {
+            try {
+                const response = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
+                const html = await response.text();
+                
+                const captionMatch = html.match(/"captions":({.*?}]}})/);
+                if (!captionMatch) return false;
+
+                const captionsData = JSON.parse(captionMatch[1]);
+                const tracks = captionsData.playerCaptionsTracklistRenderer?.captionTracks || [];
+                
+                return tracks.length > 0;
+            } catch (error) {
+                return false;
+            }
         }
 
         async function fetchCaptions(videoId) {
@@ -749,17 +832,16 @@
             currentVideoId = videoId;
             currentVideoUrl = url;
             elements.loadBtn.disabled = true;
-            elements.loadBtn.textContent = 'Loading...';
+            elements.loadBtn.textContent = 'Checking...';
 
-            // Load video
-            elements.videoFrame.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
-            elements.videoContainer.style.display = 'block';
-            elements.controls.style.display = 'flex';
-            elements.transcriptionPanel.style.display = 'block';
-
+            // Check if we have saved subtitles first
             const savedForVideo = getSavedSubtitleByVideo(videoId);
             if (savedForVideo) {
                 captions = savedForVideo.captions;
+                elements.videoFrame.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+                elements.videoContainer.style.display = 'block';
+                elements.controls.style.display = 'flex';
+                elements.transcriptionPanel.style.display = 'block';
                 renderCaptions();
                 elements.saveSubtitlesBtn.style.display = captions.length > 0 ? 'block' : 'none';
                 showStatus('✅ Loaded subtitles from your saved library for this video.', 'success');
@@ -767,6 +849,32 @@
                 elements.loadBtn.textContent = 'Load Video';
                 return;
             }
+
+            // Check if subtitles are available
+            showStatus('🔍 Checking for subtitles...', 'info');
+            const hasSubtitles = await checkSubtitlesAvailable(videoId);
+            
+            if (!hasSubtitles) {
+                showStatus('⚠️ This video has no subtitles available', 'error');
+                elements.videoFrame.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+                elements.videoContainer.style.display = 'block';
+                elements.controls.style.display = 'flex';
+                elements.transcriptionPanel.style.display = 'block';
+                captions = [];
+                renderNoCaptionsState('The video will still play, but transcription and translation features will not be available.');
+                elements.saveSubtitlesBtn.style.display = 'none';
+                elements.loadBtn.disabled = false;
+                elements.loadBtn.textContent = 'Load Video';
+                return;
+            }
+
+            elements.loadBtn.textContent = 'Loading...';
+
+            // Load video
+            elements.videoFrame.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+            elements.videoContainer.style.display = 'block';
+            elements.controls.style.display = 'flex';
+            elements.transcriptionPanel.style.display = 'block';
 
             // Fetch and translate captions
             captions = await fetchCaptions(videoId);
