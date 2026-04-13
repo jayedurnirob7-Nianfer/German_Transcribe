@@ -1,553 +1,503 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AudioScript — Video to Text Converter</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
-:root{--ink:#0f0f0f;--paper:#f5f2eb;--cream:#ede9df;--gold:#c9a84c;--gold-dim:#e8d9a8;--red:#c0392b;--green:#2e7d5e;--blue:#1a3a5c;--blue-light:#eef3fa;--muted:#7a7060;--border:#d4ccb8;}
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;}
-header{background:var(--blue);color:var(--gold-dim);padding:16px 32px;display:flex;align-items:center;gap:14px;border-bottom:3px solid var(--gold);}
-.logo{font-family:'DM Serif Display',serif;font-size:1.6rem;color:#fff;letter-spacing:-.5px;}
-.logo span{color:var(--gold);}
-.tagline{font-size:.78rem;font-weight:300;color:var(--gold-dim);border-left:1px solid var(--gold);padding-left:14px;}
-.app{display:grid;grid-template-columns:1fr 320px;height:calc(100vh - 63px);overflow:hidden;}
-@media(max-width:860px){.app{grid-template-columns:1fr;height:auto;overflow:visible;}.sidebar{border-left:none;border-top:2px solid var(--border);}}
-.main{display:flex;flex-direction:column;overflow:hidden;background:var(--paper);}
-.toolbar{background:var(--cream);border-bottom:1px solid var(--border);padding:11px 22px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;}
-.toolbar-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
-.btn{font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:600;padding:8px 16px;border:none;border-radius:6px;cursor:pointer;transition:all .16s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;}
-.btn-primary{background:var(--blue);color:#fff;}.btn-primary:hover{background:#22487a;}.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
-.btn-gold{background:var(--gold);color:var(--blue);}.btn-gold:hover{background:#b8963e;}
-.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--ink);}.btn-outline:hover{border-color:var(--gold);color:var(--blue);}
-.btn-danger{background:var(--red);color:#fff;}.btn-danger:hover{background:#a93226;}
-.btn-green{background:var(--green);color:#fff;}.btn-green:hover{background:#245f49;}.btn-green:disabled{opacity:.45;cursor:not-allowed;}
-.btn-sm{font-size:.73rem;padding:5px 11px;}
-.api-key-bar{background:#fff8e6;border-bottom:2px solid var(--gold);padding:10px 22px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.api-key-bar label{font-size:.75rem;font-weight:700;color:var(--blue);white-space:nowrap;}
-.api-key-input{flex:1;font-family:'DM Mono',monospace;font-size:.78rem;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);outline:none;transition:border-color .2s;min-width:0;}
-.api-key-input:focus{border-color:var(--gold);}
-.api-key-note{font-size:.7rem;color:var(--muted);}
-.converter-panel{background:var(--cream);border-bottom:2px solid var(--border);flex-shrink:0;padding:12px 22px 16px;}
-.converter-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;}
-.converter-title{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--blue);}
-.converter-hint{font-size:.72rem;color:var(--muted);}
-.converter-body{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-@media(max-width:680px){.converter-body{grid-template-columns:1fr;}}
-.drop-zone{border:2px dashed var(--border);border-radius:8px;background:#fff;padding:18px 12px;text-align:center;cursor:pointer;transition:all .2s;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:108px;}
-.drop-zone:hover,.drop-zone.drag-over{border-color:var(--gold);background:#fdf9ef;}
-.drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.drop-icon{font-size:1.8rem;pointer-events:none;}
-.drop-label{font-size:.82rem;font-weight:600;color:var(--blue);pointer-events:none;}
-.drop-hint{font-size:.7rem;color:var(--muted);line-height:1.4;pointer-events:none;}
-.drop-file-name{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--green);background:#e6f4ee;padding:3px 8px;border-radius:4px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;}
-.converter-controls{display:flex;flex-direction:column;gap:9px;}
-.field-label{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
-.url-field{display:flex;gap:6px;}
-.url-input{flex:1;font-family:'DM Mono',monospace;font-size:.78rem;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);outline:none;transition:border-color .2s;min-width:0;}
-.url-input:focus{border-color:var(--gold);}
-.url-input::placeholder{color:var(--muted);}
-.controls-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.lang-select{font-family:'DM Sans',sans-serif;font-size:.78rem;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);cursor:pointer;outline:none;}
-.lang-select:focus{border-color:var(--gold);}
-.autodetect-row{display:flex;align-items:center;gap:5px;font-size:.76rem;color:var(--muted);cursor:pointer;user-select:none;}
-.autodetect-row input{accent-color:var(--blue);cursor:pointer;}
-.video-preview{background:#080810;height:0;overflow:hidden;transition:height .3s ease;flex-shrink:0;}
-.video-preview.visible{height:195px;}
-.video-preview iframe{width:100%;height:100%;display:block;}
-.progress-bar-wrap{height:3px;background:var(--border);flex-shrink:0;overflow:hidden;}
-.progress-bar{height:100%;background:linear-gradient(90deg,var(--gold),var(--blue));width:0%;transition:width .4s ease;}
-.progress-bar.indeterminate{width:40%;animation:slide 1.4s infinite ease-in-out;}
-@keyframes slide{0%{margin-left:-40%;}100%{margin-left:100%;}}
-.transcript-area{flex:1;overflow-y:auto;padding:20px 22px;background:#fff;display:flex;flex-direction:column;}
-.transcript-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:14px;text-align:center;padding:30px;}
-.transcript-empty .big-icon{font-size:3rem;opacity:.45;}
-.transcript-empty p{font-size:.88rem;max-width:290px;line-height:1.7;}
-.transcript-block{margin-bottom:22px;animation:fadeUp .3s ease;}
-@keyframes fadeUp{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:translateY(0);}}
-.transcript-meta{font-family:'DM Mono',monospace;font-size:.67rem;color:var(--muted);margin-bottom:5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.meta-tag{background:var(--cream);padding:1px 6px;border-radius:3px;font-weight:500;}
-.transcript-text{font-size:.95rem;line-height:1.82;color:var(--ink);background:#faf9f5;border-left:3px solid var(--gold);padding:12px 15px;border-radius:0 6px 6px 0;white-space:pre-wrap;word-break:break-word;outline:none;transition:background .15s,border-color .15s;}
-.transcript-text[contenteditable="true"]:focus{background:#fffef5;border-left-color:var(--blue);box-shadow:0 0 0 2px rgba(26,58,92,.07);}
-.block-actions{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;}
-.block-actions button{font-size:.72rem;padding:4px 10px;border-radius:4px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--muted);transition:all .13s;}
-.block-actions button:hover{border-color:var(--gold);color:var(--blue);}
-.block-actions button.del-btn:hover{border-color:var(--red);color:var(--red);}
-.block-actions button.edit-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
-.grammar-note{margin-top:9px;font-size:.81rem;color:var(--blue);background:var(--blue-light);border:1px solid #c5d5e8;padding:11px 14px;border-radius:6px;line-height:1.65;white-space:pre-wrap;}
-.grammar-title{font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;color:var(--blue);}
-.status-bar{padding:5px 22px;font-size:.72rem;display:flex;align-items:center;gap:7px;border-top:1px solid var(--border);background:var(--cream);min-height:27px;flex-shrink:0;}
-.status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
-.status-dot.ok{background:var(--green);}
-.status-dot.err{background:var(--red);}
-.status-dot.busy{background:var(--gold);animation:blink .8s infinite;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-.status-text{color:var(--muted);}
-.sidebar{border-left:2px solid var(--border);background:var(--paper);display:flex;flex-direction:column;overflow:hidden;}
-.sidebar-header{padding:14px 18px 10px;border-bottom:1px solid var(--border);background:var(--cream);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.sidebar-title{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--blue);}
-.saved-count{font-family:'DM Mono',monospace;font-size:.7rem;background:var(--gold);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:700;}
-.sidebar-list{flex:1;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:9px;}
-.saved-card{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:11px 12px;animation:fadeUp .25s ease;transition:border-color .18s;}
-.saved-card:hover{border-color:var(--gold);}
-.saved-card-meta{font-family:'DM Mono',monospace;font-size:.64rem;color:var(--muted);margin-bottom:4px;display:flex;justify-content:space-between;}
-.saved-card-text{font-size:.81rem;line-height:1.5;color:var(--ink);max-height:66px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
-.saved-card-actions{display:flex;gap:4px;margin-top:8px;}
-.saved-card-actions button{flex:1;font-size:.67rem;padding:4px 3px;border-radius:4px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;border:1px solid var(--border);background:#fff;color:var(--muted);transition:all .13s;}
-.saved-card-actions button:hover{border-color:var(--gold);color:var(--blue);}
-.saved-card-actions button.del:hover{border-color:var(--red);color:var(--red);}
-.sidebar-empty{text-align:center;color:var(--muted);font-size:.82rem;padding:28px 12px;line-height:1.65;}
-.sidebar-footer{padding:10px 11px;border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0;}
-.overlay{display:none;position:fixed;inset:0;background:rgba(8,10,20,.55);z-index:200;align-items:center;justify-content:center;}
-.overlay.active{display:flex;}
-.modal{background:#fff;border-radius:12px;width:92%;max-width:540px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.28);overflow:hidden;}
-.modal-header{background:var(--blue);color:#fff;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;}
-.modal-title{font-family:'DM Serif Display',serif;font-size:1.1rem;}
-.modal-close{background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;opacity:.7;transition:opacity .2s;}
-.modal-close:hover{opacity:1;}
-.modal-body{padding:20px;overflow-y:auto;flex:1;}
-.modal-text-box{width:100%;font-family:'DM Sans',sans-serif;font-size:.92rem;line-height:1.7;border:1.5px solid var(--border);border-radius:6px;padding:11px;resize:vertical;min-height:110px;outline:none;color:var(--ink);transition:border-color .2s;}
-.modal-text-box:focus{border-color:var(--gold);}
-.grammar-result{margin-top:14px;background:var(--blue-light);border:1px solid #c5d5e8;border-radius:8px;padding:14px;font-size:.86rem;line-height:1.7;color:var(--blue);white-space:pre-wrap;}
-.grammar-spinner{text-align:center;padding:18px;color:var(--muted);font-size:.88rem;}
-.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
-.export-wrap{position:relative;display:inline-flex;}
-.export-menu{display:none;position:absolute;bottom:calc(100% + 5px);right:0;background:#fff;border:1.5px solid var(--border);border-radius:7px;box-shadow:0 6px 24px rgba(0,0,0,.13);min-width:155px;z-index:50;overflow:hidden;}
-.export-menu.open{display:block;}
-.export-menu button{display:block;width:100%;text-align:left;padding:9px 16px;font-size:.81rem;font-family:'DM Sans',sans-serif;font-weight:500;border:none;background:#fff;cursor:pointer;color:var(--ink);transition:background .13s;}
-.export-menu button:hover{background:var(--cream);color:var(--blue);}
-::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:var(--gold);}
-</style>
-</head>
-<body>
-<header>
-  <div class="logo">Audio<span>Script</span></div>
-  <div class="tagline">Video to Text Converter &nbsp;·&nbsp; Grammar Check &nbsp;·&nbsp; Save &amp; Export</div>
-</header>
-<div class="app">
-  <div class="main">
+import { useState, useRef, useCallback } from "react";
 
-    <!-- API Key Bar -->
-    <div class="api-key-bar">
-      <label for="apiKeyInput">🔑 Anthropic API Key</label>
-      <input class="api-key-input" id="apiKeyInput" type="password" placeholder="sk-ant-…  (required for AI features)" autocomplete="off" />
-      <span class="api-key-note">Never stored — session only</span>
-    </div>
+const CLAUDE_MODEL = "claude-sonnet-4-20250514";
 
-    <div class="toolbar">
-      <span class="toolbar-label">Actions</span>
-      <button class="btn btn-outline btn-sm" id="clearTranscriptBtn">✕ Clear</button>
-      <button class="btn btn-outline btn-sm" id="grammarAllBtn">✍ Grammar Check All</button>
-      <button class="btn btn-gold btn-sm" id="saveAllBtn">💾 Save All</button>
-      <div style="flex:1"></div>
-      <div class="export-wrap">
-        <button class="btn btn-outline btn-sm" id="exportToggleBtn">⬇ Export ▾</button>
-        <div class="export-menu" id="exportMenu">
-          <button onclick="exportFormat('txt')">📄 Export as TXT</button>
-          <button onclick="exportFormat('json')">🗂 Export as JSON</button>
-          <button onclick="exportFormat('srt')">🎬 Export as SRT</button>
-        </div>
+async function callClaude(system, userContent) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 1000,
+      system,
+      messages: [{ role: "user", content: userContent }],
+    }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || "API error");
+  return data.content?.[0]?.text || "";
+}
+
+const getVid = (url) => {
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+  return m ? m[1] : null;
+};
+
+const fmtTime = (d) =>
+  d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+let _id = 0;
+const uid = () => `b${++_id}_${Date.now()}`;
+
+export default function AudioScript() {
+  const [blocks, setBlocks] = useState([]);
+  const [saved, setSaved] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("as_saved") || "[]"); } catch { return []; }
+  });
+  const [status, setStatus] = useState({ msg: "Ready — upload a video or paste a YouTube URL", type: "" });
+  const [busy, setBusy] = useState(false);
+  const [ytUrl, setYtUrl] = useState("");
+  const [lang, setLang] = useState("English");
+  const [autoDetect, setAutoDetect] = useState(false);
+  const [fileName, setFileName] = useState("");
+  const [fileObj, setFileObj] = useState(null);
+  const [previewVid, setPreviewVid] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [grammarModal, setGrammarModal] = useState(null); // {blockId, text, result, loading}
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [dragOver, setDragOver] = useState(false);
+  const fileRef = useRef();
+  const transcriptRef = useRef();
+
+  const setOk = (msg) => setStatus({ msg, type: "ok" });
+  const setErr = (msg) => setStatus({ msg, type: "err" });
+  const setBusyStatus = (msg) => setStatus({ msg, type: "busy" });
+
+  // ── File handling ──
+  const handleFile = (file) => {
+    if (!file || !file.type.startsWith("video/")) { setErr("Please drop a valid video file"); return; }
+    setFileObj(file);
+    setFileName(file.name);
+    setYtUrl("");
+    setPreviewVid("");
+    setOk(`File selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault(); setDragOver(false);
+    handleFile(e.dataTransfer.files[0]);
+  };
+
+  // ── YouTube preview ──
+  const previewYT = () => {
+    const vid = getVid(ytUrl);
+    if (!vid) { setErr("Invalid YouTube URL"); return; }
+    setPreviewVid(vid);
+    setFileObj(null); setFileName("");
+    setOk("YouTube video loaded — click Convert to Text");
+  };
+
+  // ── Fetch YT captions ──
+  async function fetchCaps(videoId) {
+    const res = await fetch(`https://www.youtube.com/watch?v=${videoId}`);
+    const html = await res.text();
+    const m = html.match(/"captions":(\{.*?\}\}\})/s);
+    if (!m) return [];
+    const data = JSON.parse(m[1]);
+    const tracks = data.playerCaptionsTracklistRenderer?.captionTracks || [];
+    if (!tracks.length) return [];
+    const t = tracks.find(t => t.languageCode?.startsWith("en")) || tracks[0];
+    const cr = await fetch(t.baseUrl); const xml = await cr.text();
+    const doc = new DOMParser().parseFromString(xml, "text/xml");
+    return Array.from(doc.getElementsByTagName("text")).map(el => ({
+      start: parseFloat(el.getAttribute("start") || 0),
+      text: el.textContent.replace(/&#39;/g, "'").replace(/&amp;/g, "&").trim()
+    }));
+  }
+
+  // ── Convert ──
+  const convert = async () => {
+    const vid = getVid(ytUrl);
+    if (!fileObj && !vid) { setErr("Please upload a video file or paste a YouTube URL first"); return; }
+    setBusy(true);
+    try {
+      const langVal = autoDetect ? "auto" : lang;
+      if (vid) await convertYT(vid, langVal);
+      else await convertFile(fileObj, langVal);
+    } catch (e) { setErr(`Error: ${e.message}`); }
+    setBusy(false);
+  };
+
+  async function convertYT(vid, langVal) {
+    setBusyStatus("Fetching YouTube captions…");
+    try {
+      const caps = await fetchCaps(vid);
+      if (caps.length > 0) {
+        setBusyStatus("Structuring transcript with AI…");
+        const raw = caps.map(c => c.text).join(" ");
+        const ln = autoDetect ? "Detect and state the language." : `Language: ${langVal}.`;
+        const structured = await callClaude(
+          `You are a professional transcript editor. Clean raw caption text into well-structured readable paragraphs with proper punctuation. ${ln}`,
+          `Clean this raw caption text:\n\n${raw}`
+        );
+        addBlock(structured, autoDetect ? "auto-detected" : langVal, "YouTube");
+        setOk(`✅ Transcription complete — ${caps.length} segments`);
+        return;
+      }
+    } catch {}
+    setBusyStatus("No captions — generating AI guidance…");
+    const ln = autoDetect ? "Auto-detect language." : `Language: ${langVal}.`;
+    const r = await callClaude(
+      "You are a helpful transcription assistant.",
+      `YouTube video: https://youtube.com/watch?v=${vid}\n\nNo captions available. ${ln}\nSuggest best free tools (yt-dlp + Whisper, etc.) with step-by-step instructions.`
+    );
+    addBlock(r, autoDetect ? "auto-detected" : langVal, "YouTube (AI guide)");
+    setOk("✅ AI guidance generated");
+  }
+
+  async function convertFile(file, langVal) {
+    const MAX = 18 * 1024 * 1024;
+    setBusyStatus("Reading video file…");
+    if (file.size > MAX) {
+      setBusyStatus("Large file — generating guidance…");
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      const ln = autoDetect ? "Auto-detect language." : `Language: ${langVal}.`;
+      const r = await callClaude(
+        "You are a helpful transcription assistant.",
+        `Large video file "${file.name}" (${mb} MB) — too large for direct processing. ${ln}\nSuggest best local transcription tools (Whisper, etc.) with step-by-step instructions.`
+      );
+      addBlock(r, autoDetect ? "auto-detected" : langVal, file.name);
+      setOk("✅ Done — see guidance below");
+      return;
+    }
+    setBusyStatus("Encoding video for AI…");
+    const b64 = await new Promise((res, rej) => {
+      const r = new FileReader(); r.onload = () => res(r.result.split(",")[1]); r.onerror = rej; r.readAsDataURL(file);
+    });
+    setBusyStatus("Sending to Claude AI…");
+    const ln = autoDetect ? "Auto-detect the language and state it at the start." : `Content is in ${langVal}. Transcribe in ${langVal}.`;
+    const r = await callClaude(
+      `You are a professional transcription service. Produce accurate, well-structured transcriptions with proper punctuation, capitalization, and paragraph breaks. ${ln}`,
+      [
+        { type: "document", source: { type: "base64", media_type: file.type || "video/mp4", data: b64 } },
+        { type: "text", text: `Transcribe all spoken content from "${file.name}". Format as clean paragraphs. ${ln}` }
+      ]
+    );
+    addBlock(r, autoDetect ? "auto-detected" : langVal, file.name);
+    setOk("✅ Transcription complete");
+  }
+
+  // ── Blocks ──
+  const addBlock = (text, lang, source) => {
+    if (!text?.trim()) return;
+    const block = { id: uid(), text: text.trim(), lang, source, time: new Date() };
+    setBlocks(prev => [...prev, block]);
+    setTimeout(() => { if (transcriptRef.current) transcriptRef.current.scrollTop = 99999; }, 100);
+  };
+
+  const deleteBlock = (id) => setBlocks(prev => prev.filter(b => b.id !== id));
+
+  const startEdit = (block) => { setEditingId(block.id); setEditText(block.text); };
+  const saveEdit = (id) => {
+    setBlocks(prev => prev.map(b => b.id === id ? { ...b, text: editText } : b));
+    setEditingId(null); setOk("Edit saved");
+  };
+
+  const copyBlock = (text) => navigator.clipboard.writeText(text).then(() => setOk("Copied ✓"));
+
+  const saveBlock = (block) => {
+    const entry = { ...block, time: block.time.toISOString() };
+    setSaved(prev => {
+      const next = [entry, ...prev.filter(s => s.id !== block.id)];
+      localStorage.setItem("as_saved", JSON.stringify(next));
+      return next;
+    });
+    setOk("Saved ✓");
+  };
+
+  // ── Grammar ──
+  const openGrammar = (block) => setGrammarModal({ blockId: block.id, text: block.text, result: "", loading: false });
+
+  const runGrammar = async () => {
+    if (!grammarModal?.text?.trim()) return;
+    setGrammarModal(m => ({ ...m, loading: true, result: "" }));
+    try {
+      const result = await callClaude(
+        `You are a precise grammar assistant. Identify grammar errors, awkward phrasing, suggest corrections. Format: list issues with ❌, then ✅ corrected version. If no issues, say "✅ No issues found."`,
+        `Check grammar:\n\n${grammarModal.text}`
+      );
+      setGrammarModal(m => ({ ...m, loading: false, result }));
+    } catch (e) {
+      setGrammarModal(m => ({ ...m, loading: false, result: `Error: ${e.message}` }));
+    }
+  };
+
+  // ── Export ──
+  const exportAll = (type) => {
+    setExportOpen(false);
+    const all = saved.length ? saved : blocks.map(b => ({ ...b, time: b.time.toISOString() }));
+    if (!all.length) { setErr("Nothing to export"); return; }
+    let content, name, mime;
+    if (type === "txt") {
+      content = all.map(s => `[${new Date(s.time).toLocaleString()}]${s.source ? " · " + s.source : ""}\n${s.text}`).join("\n\n────────────────────\n\n");
+      name = "transcript.txt"; mime = "text/plain";
+    } else if (type === "json") {
+      content = JSON.stringify(all, null, 2); name = "transcript.json"; mime = "application/json";
+    } else {
+      let srt = "", idx = 1;
+      all.forEach(s => {
+        s.text.split(/(?<=[.!?])\s+/).filter(Boolean).forEach((line, i) => {
+          const ss = i * 4, se = ss + 4;
+          const fmt = n => `${String(Math.floor(n/3600)).padStart(2,"0")}:${String(Math.floor(n%3600/60)).padStart(2,"0")}:${String(n%60).padStart(2,"0")},000`;
+          srt += `${idx}\n${fmt(ss)} --> ${fmt(se)}\n${line.trim()}\n\n`; idx++;
+        });
+      });
+      content = srt; name = "transcript.srt"; mime = "text/plain";
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+    a.download = name; a.click();
+    setOk(`Downloaded ${name} ✓`);
+  };
+
+  const deleteSaved = (id) => {
+    setSaved(prev => { const next = prev.filter(s => s.id !== id); localStorage.setItem("as_saved", JSON.stringify(next)); return next; });
+  };
+
+  const loadSaved = (s) => {
+    if (blocks.find(b => b.id === s.id)) return;
+    setBlocks(prev => [...prev, { ...s, time: new Date(s.time) }]);
+    setOk("Loaded ✓");
+  };
+
+  // ── Styles ──
+  const css = {
+    app: { fontFamily: "'DM Sans', sans-serif", background: "#f5f2eb", minHeight: "100vh", color: "#0f0f0f" },
+    header: { background: "#1a3a5c", color: "#e8d9a8", padding: "14px 28px", display: "flex", alignItems: "center", gap: 12, borderBottom: "3px solid #c9a84c" },
+    logo: { fontFamily: "'DM Serif Display', serif", fontSize: "1.5rem", color: "#fff", letterSpacing: "-0.5px" },
+    logoSpan: { color: "#c9a84c" },
+    tagline: { fontSize: ".75rem", color: "#e8d9a8", borderLeft: "1px solid #c9a84c", paddingLeft: 12 },
+    body: { display: "grid", gridTemplateColumns: "1fr 300px", height: "calc(100vh - 58px)", overflow: "hidden" },
+    main: { display: "flex", flexDirection: "column", overflow: "hidden" },
+    toolbar: { background: "#ede9df", borderBottom: "1px solid #d4ccb8", padding: "9px 20px", display: "flex", gap: 7, alignItems: "center", flexWrap: "wrap", flexShrink: 0 },
+    toolbarLabel: { fontSize: ".68rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#7a7060" },
+    panel: { background: "#ede9df", borderBottom: "2px solid #d4ccb8", padding: "12px 20px 14px", flexShrink: 0 },
+    panelTitle: { fontFamily: "'DM Serif Display', serif", fontSize: ".95rem", color: "#1a3a5c", marginBottom: 10 },
+    grid2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
+    dropZone: { border: `2px dashed ${dragOver ? "#c9a84c" : "#d4ccb8"}`, borderRadius: 8, background: dragOver ? "#fdf9ef" : "#fff", padding: "16px 10px", textAlign: "center", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 5, minHeight: 100, transition: "all .2s" },
+    controls: { display: "flex", flexDirection: "column", gap: 8 },
+    fieldLabel: { fontSize: ".68rem", fontWeight: 700, color: "#7a7060", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: 3 },
+    input: { fontFamily: "'DM Mono', monospace", fontSize: ".76rem", padding: "7px 9px", border: "1.5px solid #d4ccb8", borderRadius: 6, background: "#fff", color: "#0f0f0f", outline: "none", width: "100%", boxSizing: "border-box" },
+    select: { fontFamily: "'DM Sans', sans-serif", fontSize: ".76rem", padding: "7px 9px", border: "1.5px solid #d4ccb8", borderRadius: 6, background: "#fff", color: "#0f0f0f", cursor: "pointer" },
+    transcriptArea: { flex: 1, overflowY: "auto", padding: "18px 20px", background: "#fff", display: "flex", flexDirection: "column" },
+    empty: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#7a7060", gap: 12, textAlign: "center", padding: 28 },
+    block: { marginBottom: 20, animation: "fadeUp .3s ease" },
+    blockMeta: { fontFamily: "'DM Mono', monospace", fontSize: ".64rem", color: "#7a7060", marginBottom: 4, display: "flex", gap: 7, flexWrap: "wrap" },
+    metaTag: { background: "#ede9df", padding: "1px 5px", borderRadius: 3, fontWeight: 500 },
+    blockText: { fontSize: ".9rem", lineHeight: 1.8, background: "#faf9f5", borderLeft: "3px solid #c9a84c", padding: "11px 14px", borderRadius: "0 6px 6px 0", whiteSpace: "pre-wrap", wordBreak: "break-word" },
+    textarea: { width: "100%", fontFamily: "'DM Sans', sans-serif", fontSize: ".88rem", lineHeight: 1.75, border: "1.5px solid #c9a84c", borderRadius: "0 6px 6px 0", borderLeft: "3px solid #1a3a5c", padding: "11px 14px", background: "#fffef5", outline: "none", resize: "vertical", minHeight: 100, boxSizing: "border-box" },
+    blockActions: { display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" },
+    statusBar: { padding: "5px 20px", fontSize: ".7rem", display: "flex", alignItems: "center", gap: 6, borderTop: "1px solid #d4ccb8", background: "#ede9df", flexShrink: 0 },
+    sidebar: { borderLeft: "2px solid #d4ccb8", background: "#f5f2eb", display: "flex", flexDirection: "column", overflow: "hidden" },
+    sidebarHeader: { padding: "12px 16px 9px", borderBottom: "1px solid #d4ccb8", background: "#ede9df", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 },
+    sidebarTitle: { fontFamily: "'DM Serif Display', serif", fontSize: ".95rem", color: "#1a3a5c" },
+    savedCount: { fontFamily: "'DM Mono', monospace", fontSize: ".68rem", background: "#c9a84c", color: "#1a3a5c", padding: "1px 8px", borderRadius: 10, fontWeight: 700 },
+    sidebarList: { flex: 1, overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 },
+    card: { background: "#fff", border: "1.5px solid #d4ccb8", borderRadius: 7, padding: "10px 11px" },
+    cardText: { fontSize: ".78rem", lineHeight: 1.5, color: "#0f0f0f", maxHeight: 60, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical" },
+    overlay: { position: "fixed", inset: 0, background: "rgba(8,10,20,.5)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" },
+    modal: { background: "#fff", borderRadius: 10, width: "90%", maxWidth: 520, maxHeight: "80vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,.25)", overflow: "hidden" },
+    modalHeader: { background: "#1a3a5c", color: "#fff", padding: "13px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" },
+    progressWrap: { height: 3, background: "#d4ccb8", flexShrink: 0, overflow: "hidden" },
+  };
+
+  const btn = (color, small) => ({
+    fontFamily: "'DM Sans', sans-serif", fontSize: small ? ".71rem" : ".78rem",
+    fontWeight: 600, padding: small ? "5px 10px" : "8px 14px",
+    border: "none", borderRadius: 5, cursor: "pointer", whiteSpace: "nowrap",
+    display: "inline-flex", alignItems: "center", gap: 4, transition: "opacity .15s",
+    ...(color === "blue" && { background: "#1a3a5c", color: "#fff" }),
+    ...(color === "gold" && { background: "#c9a84c", color: "#1a3a5c" }),
+    ...(color === "green" && { background: "#2e7d5e", color: "#fff" }),
+    ...(color === "red" && { background: "#c0392b", color: "#fff" }),
+    ...(color === "outline" && { background: "transparent", border: "1.5px solid #d4ccb8", color: "#0f0f0f" }),
+    ...(color === "ghost" && { background: "#fff", border: "1px solid #d4ccb8", color: "#7a7060", fontSize: ".7rem", padding: "3px 9px" }),
+  });
+
+  const dotColor = { ok: "#2e7d5e", err: "#c0392b", busy: "#c9a84c", "": "#7a7060" };
+
+  return (
+    <div style={css.app}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+        @keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+        ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#d4ccb8;border-radius:3px}
+        button:hover{opacity:.82}
+      `}</style>
+
+      {/* Header */}
+      <div style={css.header}>
+        <div style={css.logo}>Audio<span style={css.logoSpan}>Script</span></div>
+        <div style={css.tagline}>Video to Text · Grammar Check · Save & Export</div>
       </div>
-    </div>
 
-    <div class="converter-panel">
-      <div class="converter-header">
-        <div class="converter-title">🎬 Video to Text Converter</div>
-        <div class="converter-hint">Upload a video file or paste a YouTube link</div>
-      </div>
-      <div class="converter-body">
-        <div class="drop-zone" id="dropZone">
-          <input type="file" id="videoFileInput" accept=".mp4,.mov,.mkv,.webm,.m4v,video/*" />
-          <div class="drop-icon" id="dropIcon">📁</div>
-          <div class="drop-label" id="dropLabel">Drag &amp; drop video here</div>
-          <div class="drop-hint">or click to browse &nbsp;·&nbsp; MP4 · MOV · MKV · WEBM</div>
-          <div class="drop-file-name" id="dropFileName" style="display:none"></div>
-        </div>
-        <div class="converter-controls">
-          <div>
-            <div class="field-label">YouTube URL</div>
-            <div class="url-field">
-              <input class="url-input" id="ytUrlInput" type="text" placeholder="https://youtube.com/watch?v=…" />
-              <button class="btn btn-outline btn-sm" id="ytPreviewBtn" title="Preview">▶</button>
+      <div style={css.body}>
+        <div style={css.main}>
+
+          {/* Toolbar */}
+          <div style={css.toolbar}>
+            <span style={css.toolbarLabel}>Actions</span>
+            <button style={btn("outline",true)} onClick={() => { if (blocks.length && !confirm("Clear all?")) return; setBlocks([]); }}>✕ Clear</button>
+            <button style={btn("gold",true)} onClick={() => blocks.forEach(b => saveBlock(b))}>💾 Save All</button>
+            <div style={{ flex: 1 }} />
+            <div style={{ position: "relative" }}>
+              <button style={btn("outline",true)} onClick={() => setExportOpen(o => !o)}>⬇ Export ▾</button>
+              {exportOpen && (
+                <div style={{ position: "absolute", bottom: "calc(100% + 5px)", right: 0, background: "#fff", border: "1.5px solid #d4ccb8", borderRadius: 7, boxShadow: "0 6px 24px rgba(0,0,0,.13)", minWidth: 150, zIndex: 50, overflow: "hidden" }}>
+                  {["txt","json","srt"].map(t => (
+                    <button key={t} onClick={() => exportAll(t)} style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 14px", fontSize: ".79rem", fontFamily: "'DM Sans',sans-serif", border: "none", background: "#fff", cursor: "pointer", color: "#0f0f0f" }}>
+                      {t === "txt" ? "📄 TXT" : t === "json" ? "🗂 JSON" : "🎬 SRT"}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          <div class="controls-row">
-            <select class="lang-select" id="langSelect">
-              <option value="German">🇩🇪 German</option>
-              <option value="English">🇬🇧 English</option>
-              <option value="French">🇫🇷 French</option>
-              <option value="Spanish">🇪🇸 Spanish</option>
-              <option value="Italian">🇮🇹 Italian</option>
-              <option value="Japanese">🇯🇵 Japanese</option>
-              <option value="Chinese">🇨🇳 Chinese</option>
-              <option value="Arabic">🌍 Arabic</option>
-              <option value="Portuguese">🇧🇷 Portuguese</option>
-            </select>
-            <label class="autodetect-row">
-              <input type="checkbox" id="autoDetectLang" />
-              Auto-detect
-            </label>
+
+          {/* Converter panel */}
+          <div style={css.panel}>
+            <div style={css.panelTitle}>🎬 Video to Text Converter</div>
+            <div style={css.grid2}>
+              {/* Drop zone */}
+              <div
+                style={css.dropZone}
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileRef.current?.click()}
+              >
+                <input ref={fileRef} type="file" accept="video/*" style={{ display: "none" }} onChange={e => handleFile(e.target.files[0])} />
+                <div style={{ fontSize: "1.6rem" }}>{fileName ? "✅" : "📁"}</div>
+                <div style={{ fontSize: ".8rem", fontWeight: 600, color: "#1a3a5c" }}>{fileName || "Drag & drop video here"}</div>
+                {!fileName && <div style={{ fontSize: ".68rem", color: "#7a7060" }}>or click to browse · MP4 · MOV · MKV · WEBM</div>}
+              </div>
+
+              {/* Controls */}
+              <div style={css.controls}>
+                <div>
+                  <div style={css.fieldLabel}>YouTube URL</div>
+                  <div style={{ display: "flex", gap: 5 }}>
+                    <input style={{ ...css.input, flex: 1 }} placeholder="https://youtube.com/watch?v=…" value={ytUrl} onChange={e => setYtUrl(e.target.value)} onPaste={e => { setTimeout(() => { if (getVid(e.target.value)) previewYT(); }, 80); }} />
+                    <button style={btn("outline", true)} onClick={previewYT}>▶</button>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <select style={css.select} value={lang} onChange={e => setLang(e.target.value)} disabled={autoDetect}>
+                    {["English","German","French","Spanish","Italian","Japanese","Chinese","Arabic","Portuguese"].map(l => <option key={l}>{l}</option>)}
+                  </select>
+                  <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: ".74rem", color: "#7a7060", cursor: "pointer" }}>
+                    <input type="checkbox" checked={autoDetect} onChange={e => setAutoDetect(e.target.checked)} style={{ accentColor: "#1a3a5c" }} /> Auto-detect
+                  </label>
+                </div>
+                <button style={{ ...btn("green"), width: "100%", justifyContent: "center", padding: "10px", opacity: busy ? .5 : 1 }} onClick={convert} disabled={busy}>
+                  {busy ? "⏳ Processing…" : "⚡ Convert to Text"}
+                </button>
+              </div>
+            </div>
           </div>
-          <button class="btn btn-green" id="convertBtn" style="width:100%;justify-content:center;padding:10px">
-            ⚡ Convert to Text
-          </button>
+
+          {/* YT Preview */}
+          {previewVid && (
+            <div style={{ background: "#080810", height: 180, flexShrink: 0 }}>
+              <iframe src={`https://www.youtube.com/embed/${previewVid}`} style={{ width: "100%", height: "100%", display: "block" }} frameBorder="0" allowFullScreen />
+            </div>
+          )}
+
+          {/* Progress */}
+          <div style={css.progressWrap}>
+            {busy && <div style={{ height: "100%", background: "linear-gradient(90deg,#c9a84c,#1a3a5c)", width: "40%", animation: "slide 1.4s infinite ease-in-out" }} />}
+          </div>
+
+          {/* Transcript area */}
+          <div ref={transcriptRef} style={css.transcriptArea}>
+            {blocks.length === 0 ? (
+              <div style={css.empty}>
+                <div style={{ fontSize: "2.8rem", opacity: .4 }}>🎬</div>
+                <p style={{ fontSize: ".85rem", maxWidth: 280, lineHeight: 1.7 }}>Upload a video or paste a YouTube link to generate a transcription automatically.</p>
+              </div>
+            ) : blocks.map(block => (
+              <div key={block.id} style={css.block}>
+                <div style={css.blockMeta}>
+                  <span>{fmtTime(block.time)}</span>
+                  {block.lang && <span style={css.metaTag}>{block.lang}</span>}
+                  {block.source && <span style={css.metaTag}>📹 {block.source}</span>}
+                </div>
+
+                {editingId === block.id ? (
+                  <textarea style={css.textarea} value={editText} onChange={e => setEditText(e.target.value)} rows={5} />
+                ) : (
+                  <div style={css.blockText}>{block.text}</div>
+                )}
+
+                <div style={css.blockActions}>
+                  {editingId === block.id ? (
+                    <button style={btn("blue", true)} onClick={() => saveEdit(block.id)}>✔ Done</button>
+                  ) : (
+                    <button style={btn("ghost")} onClick={() => startEdit(block)}>✏ Edit</button>
+                  )}
+                  <button style={btn("ghost")} onClick={() => openGrammar(block)}>✍ Grammar</button>
+                  <button style={btn("ghost")} onClick={() => saveBlock(block)}>💾 Save</button>
+                  <button style={btn("ghost")} onClick={() => copyBlock(editingId === block.id ? editText : block.text)}>📋 Copy</button>
+                  <button style={{ ...btn("ghost"), marginLeft: "auto", color: "#c0392b" }} onClick={() => deleteBlock(block.id)}>✕ Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Status bar */}
+          <div style={css.statusBar}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: dotColor[status.type], animation: status.type === "busy" ? "blink .8s infinite" : "none", flexShrink: 0 }} />
+            <span style={{ color: "#7a7060" }}>{status.msg}</span>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div style={css.sidebar}>
+          <div style={css.sidebarHeader}>
+            <span style={css.sidebarTitle}>Saved Transcripts</span>
+            <span style={css.savedCount}>{saved.length}</span>
+          </div>
+          <div style={css.sidebarList}>
+            {saved.length === 0 ? (
+              <div style={{ textAlign: "center", color: "#7a7060", fontSize: ".8rem", padding: "24px 10px", lineHeight: 1.65 }}>No saved transcripts yet.<br />Convert and save your results.</div>
+            ) : saved.map(s => (
+              <div key={s.id} style={css.card}>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: ".62rem", color: "#7a7060", marginBottom: 3, display: "flex", justifyContent: "space-between" }}>
+                  <span>{new Date(s.time).toLocaleDateString()}</span><span>{s.lang}</span>
+                </div>
+                {s.source && <div style={{ fontSize: ".62rem", color: "#7a7060", marginBottom: 3 }}>📹 {s.source}</div>}
+                <div style={css.cardText}>{s.text}</div>
+                <div style={{ display: "flex", gap: 3, marginTop: 7 }}>
+                  <button style={{ ...btn("ghost"), flex: 1 }} onClick={() => loadSaved(s)}>📄 Load</button>
+                  <button style={{ ...btn("ghost"), flex: 1 }} onClick={() => copyBlock(s.text)}>📋 Copy</button>
+                  <button style={{ ...btn("ghost"), flex: 1, color: "#c0392b" }} onClick={() => deleteSaved(s.id)}>✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ padding: "9px 10px", borderTop: "1px solid #d4ccb8", flexShrink: 0 }}>
+            <button style={{ ...btn("red", true), width: "100%", justifyContent: "center" }} onClick={() => { if (!saved.length) return; if (confirm("Delete all saved?")) { setSaved([]); localStorage.removeItem("as_saved"); } }}>🗑 Clear All Saved</button>
+          </div>
         </div>
       </div>
+
+      {/* Grammar Modal */}
+      {grammarModal && (
+        <div style={css.overlay} onClick={e => { if (e.target === e.currentTarget) setGrammarModal(null); }}>
+          <div style={css.modal}>
+            <div style={css.modalHeader}>
+              <span style={{ fontFamily: "'DM Serif Display',serif", fontSize: "1rem" }}>✍ Grammar Check</span>
+              <button onClick={() => setGrammarModal(null)} style={{ background: "none", border: "none", color: "#fff", fontSize: "1.1rem", cursor: "pointer", opacity: .7 }}>✕</button>
+            </div>
+            <div style={{ padding: 18, overflowY: "auto", flex: 1 }}>
+              <textarea style={{ ...css.textarea, borderLeft: "1.5px solid #d4ccb8" }} rows={5} value={grammarModal.text} onChange={e => setGrammarModal(m => ({ ...m, text: e.target.value }))} />
+              {grammarModal.loading && <div style={{ textAlign: "center", padding: 14, color: "#7a7060", fontSize: ".85rem" }}>🔍 Checking with Claude AI…</div>}
+              {grammarModal.result && (
+                <div style={{ marginTop: 12, background: "#eef3fa", border: "1px solid #c5d5e8", borderRadius: 7, padding: 13, fontSize: ".84rem", lineHeight: 1.7, color: "#1a3a5c", whiteSpace: "pre-wrap" }}>
+                  {grammarModal.result}
+                </div>
+              )}
+            </div>
+            <div style={{ padding: "11px 18px", borderTop: "1px solid #d4ccb8", display: "flex", gap: 7, justifyContent: "flex-end" }}>
+              <button style={btn("outline", true)} onClick={() => setGrammarModal(null)}>Cancel</button>
+              <button style={btn("blue", true)} onClick={runGrammar} disabled={grammarModal.loading}>Check Grammar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-
-    <div class="video-preview" id="videoPreview">
-      <iframe id="videoFrame" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-    </div>
-    <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
-
-    <div class="transcript-area" id="transcriptArea">
-      <div class="transcript-empty" id="emptyState">
-        <div class="big-icon">🎬</div>
-        <p>Upload a video or paste a YouTube link to generate transcription automatically.</p>
-      </div>
-    </div>
-
-    <div class="status-bar">
-      <div class="status-dot" id="statusDot"></div>
-      <span class="status-text" id="statusText">Ready — enter your API key, then upload a video or paste a YouTube link</span>
-    </div>
-  </div>
-
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <span class="sidebar-title">Saved Transcripts</span>
-      <span class="saved-count" id="savedCount">0</span>
-    </div>
-    <div class="sidebar-list" id="sidebarList">
-      <div class="sidebar-empty">No saved transcripts yet.<br>Convert a video and save your results.</div>
-    </div>
-    <div class="sidebar-footer">
-      <button class="btn btn-danger btn-sm" style="flex:1" id="clearSavedBtn">🗑 Clear All Saved</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">✍ Grammar Check</span>
-      <button class="modal-close" id="modalClose">✕</button>
-    </div>
-    <div class="modal-body">
-      <textarea class="modal-text-box" id="modalText" placeholder="Paste or type text to check…" rows="5"></textarea>
-      <div id="grammarResult"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline btn-sm" id="modalClose2">Cancel</button>
-      <button class="btn btn-primary btn-sm" id="grammarCheckBtn">Check Grammar</button>
-    </div>
-  </div>
-</div>
-
-<script>
-let blocks=[],savedTranscripts=JSON.parse(localStorage.getItem('audioscript_saved')||'[]'),blockIdCounter=0,uploadedFile=null;
-const uid=()=>`b${++blockIdCounter}_${Date.now()}`;
-const fmtT=d=>d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const getVid=url=>{const m=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);return m?m[1]:null;};
-
-function getApiKey(){
-  const k=document.getElementById('apiKeyInput').value.trim();
-  if(!k)throw new Error('Please enter your Anthropic API key in the field at the top.');
-  if(!k.startsWith('sk-ant-'))throw new Error('Invalid API key format. It should start with "sk-ant-".');
-  return k;
+  );
 }
-
-function setStatus(msg,type=''){document.getElementById('statusDot').className='status-dot'+(type?' '+type:'');document.getElementById('statusText').textContent=msg;}
-function showProgress(on){const b=document.getElementById('progressBar');if(!on){b.style.width='0%';b.classList.remove('indeterminate');return;}b.classList.add('indeterminate');}
-function showEmpty(show){document.getElementById('emptyState').style.display=show?'flex':'none';}
-
-// DROP ZONE
-const dropZone=document.getElementById('dropZone'),fileInput=document.getElementById('videoFileInput');
-dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over');});
-dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('video/'))setFile(f);else setStatus('Please drop a valid video file','err');});
-fileInput.addEventListener('change',()=>{if(fileInput.files[0])setFile(fileInput.files[0]);});
-function setFile(file){
-  uploadedFile=file;
-  document.getElementById('dropFileName').textContent=file.name;
-  document.getElementById('dropFileName').style.display='block';
-  document.getElementById('dropIcon').textContent='✅';
-  document.getElementById('dropLabel').textContent='File ready';
-  document.getElementById('ytUrlInput').value='';
-  document.getElementById('videoPreview').classList.remove('visible');
-  setStatus(`File selected: ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`,'ok');
-}
-
-// YT PREVIEW
-document.getElementById('ytPreviewBtn').addEventListener('click',previewYT);
-document.getElementById('ytUrlInput').addEventListener('paste',()=>{setTimeout(()=>{if(getVid(document.getElementById('ytUrlInput').value))previewYT();},80);});
-function previewYT(){
-  const url=document.getElementById('ytUrlInput').value.trim(),vid=getVid(url);
-  if(!vid){setStatus('Invalid YouTube URL','err');return;}
-  document.getElementById('videoFrame').src=`https://www.youtube.com/embed/${vid}?enablejsapi=1`;
-  document.getElementById('videoPreview').classList.add('visible');
-  uploadedFile=null;fileInput.value='';
-  document.getElementById('dropFileName').style.display='none';
-  document.getElementById('dropIcon').textContent='📁';
-  document.getElementById('dropLabel').textContent='Drag & drop video here';
-  setStatus('YouTube video loaded — click Convert to Text','ok');
-}
-
-// AUTO-DETECT
-document.getElementById('autoDetectLang').addEventListener('change',e=>{document.getElementById('langSelect').disabled=e.target.checked;});
-
-// CONVERT
-document.getElementById('convertBtn').addEventListener('click',async()=>{
-  const ytUrl=document.getElementById('ytUrlInput').value.trim(),vid=getVid(ytUrl);
-  const autoDetect=document.getElementById('autoDetectLang').checked;
-  const lang=autoDetect?'auto':document.getElementById('langSelect').value;
-  if(!uploadedFile&&!vid){setStatus('Please upload a video file or paste a YouTube URL first','err');return;}
-  try{getApiKey();}catch(e){setStatus(e.message,'err');return;}
-  document.getElementById('convertBtn').disabled=true;
-  setStatus('Processing…','busy');showProgress(true);
-  try{if(vid)await convertYT(vid,lang,autoDetect);else await convertFile(uploadedFile,lang,autoDetect);}
-  catch(e){setStatus(`Error: ${e.message}`,'err');}
-  document.getElementById('convertBtn').disabled=false;showProgress(false);
-});
-
-async function convertYT(vid,lang,autoDetect){
-  setStatus('Fetching YouTube captions…','busy');
-  try{
-    const caps=await fetchCaps(vid);
-    if(caps&&caps.length>0){
-      setStatus('Structuring transcript with AI…','busy');
-      const raw=caps.map(c=>c.text).join(' ');
-      const structured=await claudeStructure(raw,lang,autoDetect,'YouTube');
-      addBlock(structured,autoDetect?'auto-detected':lang,'YouTube',caps);
-      setStatus(`✅ Transcription complete — ${caps.length} segments`,'ok');return;
-    }
-  }catch(e){}
-  setStatus('No captions — generating AI guidance…','busy');
-  const r=await claudeFallbackYT(`https://www.youtube.com/watch?v=${vid}`,lang,autoDetect);
-  addBlock(r,autoDetect?'auto-detected':lang,'YouTube (AI guide)');
-  setStatus('✅ AI guidance generated','ok');
-}
-
-async function fetchCaps(videoId){
-  const res=await fetch(`https://www.youtube.com/watch?v=${videoId}`);
-  const html=await res.text();
-  const m=html.match(/"captions":(\{.*?\}\}\})/s);
-  if(!m)return[];
-  const data=JSON.parse(m[1]);
-  const tracks=data.playerCaptionsTracklistRenderer?.captionTracks||[];
-  if(!tracks.length)return[];
-  const t=tracks.find(t=>t.languageCode?.startsWith('de'))||tracks.find(t=>t.languageCode?.startsWith('en'))||tracks[0];
-  const cr=await fetch(t.baseUrl);const xml=await cr.text();
-  const doc=new DOMParser().parseFromString(xml,'text/xml');
-  return Array.from(doc.getElementsByTagName('text')).map(el=>({
-    start:parseFloat(el.getAttribute('start')||0),
-    dur:parseFloat(el.getAttribute('dur')||2),
-    text:el.textContent.replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim()
-  }));
-}
-
-async function convertFile(file,lang,autoDetect){
-  const MAX=18*1024*1024;
-  setStatus('Reading video file…','busy');
-  if(file.size>MAX){
-    setStatus('Large file — generating guidance…','busy');
-    const r=await claudeLargeGuide(file.name,file.size,lang,autoDetect);
-    addBlock(r,autoDetect?'auto-detected':lang,file.name);
-    setStatus('✅ Done — see guidance below','ok');return;
-  }
-  setStatus('Encoding video for AI…','busy');
-  const b64=await toB64(file);
-  setStatus('Sending to Claude AI…','busy');
-  const r=await claudeTranscribeVid(b64,file.type||'video/mp4',lang,autoDetect,file.name);
-  addBlock(r,autoDetect?'auto-detected':lang,file.name);
-  setStatus('✅ Transcription complete','ok');
-}
-
-const toB64=file=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
-
-async function callClaude(system,userContent){
-  const apiKey=getApiKey();
-  const res=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body:JSON.stringify({
-      model:'claude-opus-4-5',
-      max_tokens:2000,
-      system,
-      messages:[{role:'user',content:userContent}]
-    })
-  });
-  if(!res.ok){
-    const err=await res.json().catch(()=>({}));
-    throw new Error(err?.error?.message||`API error ${res.status}`);
-  }
-  const data=await res.json();
-  if(data.error)throw new Error(data.error.message||'Claude API error');
-  return data.content?.[0]?.text||'';
-}
-
-async function claudeTranscribeVid(b64,mime,lang,auto,name){
-  const ln=auto?'Auto-detect the language and state it at the start.':`Content is in ${lang}. Transcribe in ${lang}.`;
-  return callClaude(`You are a professional transcription service. Produce accurate, well-structured, readable transcriptions with proper punctuation, capitalization, and paragraph breaks. ${ln}`,[
-    {type:'document',source:{type:'base64',media_type:mime,data:b64}},
-    {type:'text',text:`Transcribe all spoken content from this video file "${name}". Format as clean, well-structured paragraphs. ${ln}`}
-  ]);
-}
-
-async function claudeStructure(raw,lang,auto,src){
-  const ln=auto?'Detect and state the language.':`Language: ${lang}.`;
-  try{return await callClaude(`You are a professional transcript editor. Take raw caption text and produce clean, well-structured, readable text. Fix run-ons, add proper punctuation, and create natural paragraph breaks. ${ln}`,`Clean and structure this raw caption text from "${src}":\n\n${raw}`);}
-  catch{return raw;}
-}
-
-async function claudeFallbackYT(url,lang,auto){
-  const ln=auto?'Auto-detect language.':`Language: ${lang}.`;
-  return callClaude('You are a helpful transcription assistant. Be practical and constructive.',`YouTube video: ${url}\n\nThis video has no accessible captions. ${ln}\n\nPlease:\n1. Explain what can be done to transcribe this video\n2. Suggest the best free tools (yt-dlp + Whisper, YouTube auto-captions, browser extensions)\n3. Provide step-by-step instructions for the easiest method\n\nFormat clearly with numbered steps.`);
-}
-
-async function claudeLargeGuide(name,size,lang,auto){
-  const mb=(size/1024/1024).toFixed(1),ln=auto?'Auto-detect language.':`Language: ${lang}.`;
-  return callClaude('You are a helpful transcription assistant.',`The user has a large video file "${name}" (${mb} MB) that is too large to process directly. ${ln}\n\nProvide:\n1. Best free tools to transcribe locally (OpenAI Whisper, etc.)\n2. Step-by-step instructions for the simplest method\n3. Online alternatives\n\nBe concise and practical.`);
-}
-
-async function claudeGrammar(text){
-  return callClaude(`You are a precise grammar assistant. When given text:\n1. Identify grammar errors\n2. Note awkward phrasing\n3. Suggest corrections\n4. Show corrected version\nBe concise. Format: list issues with ❌, then ✅ corrected version. If correct, say "✅ No issues found." only.`,`Check grammar:\n\n${text}`);
-}
-
-// BLOCKS
-function addBlock(text,lang,source){
-  if(!text?.trim())return;
-  const block={id:uid(),text:text.trim(),lang,source:source||'',time:new Date(),grammarNote:null};
-  blocks.push(block);showEmpty(false);renderBlock(block);
-  document.getElementById('transcriptArea').scrollTop=999999;
-  return block;
-}
-
-function renderBlock(block){
-  const area=document.getElementById('transcriptArea');
-  const div=document.createElement('div');
-  div.className='transcript-block';div.id=`block-${block.id}`;
-  div.innerHTML=`
-    <div class="transcript-meta">
-      <span>${fmtT(block.time)}</span>
-      ${block.lang?`<span class="meta-tag">${esc(block.lang)}</span>`:''}
-      ${block.source?`<span class="meta-tag">📹 ${esc(block.source)}</span>`:''}
-    </div>
-    <div class="transcript-text" id="text-${block.id}" contenteditable="false">${esc(block.text)}</div>
-    <div class="block-actions">
-      <button class="edit-btn" onclick="toggleEdit('${block.id}')">✏ Edit</button>
-      <button onclick="openGrammarModal('${block.id}')">✍ Grammar</button>
-      <button onclick="saveBlock('${block.id}')">💾 Save</button>
-      <button onclick="copyBlock('${block.id}')">📋 Copy</button>
-      <button class="del-btn" onclick="deleteBlock('${block.id}')" style="margin-left:auto">✕ Delete</button>
-    </div>
-    <div id="grammar-${block.id}"></div>`;
-  area.appendChild(div);
-}
-
-function syncText(id){const el=document.getElementById(`text-${id}`),b=blocks.find(b=>b.id===id);if(el&&b)b.text=el.innerText;}
-function toggleEdit(id){
-  const el=document.getElementById(`text-${id}`),btn=document.querySelector(`#block-${id} .edit-btn`);
-  if(el.contentEditable==='true'){el.contentEditable='false';btn.textContent='✏ Edit';btn.classList.remove('active');syncText(id);setStatus('Edit saved','ok');}
-  else{el.contentEditable='true';el.focus();btn.textContent='✔ Done';btn.classList.add('active');}
-}
-function deleteBlock(id){blocks=blocks.filter(b=>b.id!==id);document.getElementById(`block-${id}`)?.remove();if(!blocks.length)showEmpty(true);}
-function copyBlock(id){syncText(id);const b=blocks.find(b=>b.id===id);if(b)navigator.clipboard.writeText(b.text).then(()=>setStatus('Copied ✓','ok'));}
-function saveBlock(id){
-  syncText(id);const block=blocks.find(b=>b.id===id);if(!block)return;
-  const entry={id:block.id,text:block.text,lang:block.lang,source:block.source,time:block.time.toISOString(),grammarNote:block.grammarNote};
-  savedTranscripts=savedTranscripts.filter(s=>s.id!==id);savedTranscripts.unshift(entry);
-  localStorage.setItem('audioscript_saved',JSON.stringify(savedTranscripts));renderSidebar();setStatus('Saved ✓','ok');
-}
-
-document.getElementById('saveAllBtn').addEventListener('click',()=>{if(!blocks.length){setStatus('Nothing to save','err');return;}blocks.forEach(b=>saveBlock(b.id));setStatus(`Saved ${blocks.length} block(s) ✓`,'ok');});
-document.getElementById('clearTranscriptBtn').addEventListener('click',()=>{if(blocks.length&&!confirm('Clear all transcript blocks?'))return;blocks=[];document.querySelectorAll('.transcript-block').forEach(el=>el.remove());showEmpty(true);setStatus('Cleared');});
-
-// EXPORT
-document.getElementById('exportToggleBtn').addEventListener('click',()=>document.getElementById('exportMenu').classList.toggle('open'));
-document.addEventListener('click',e=>{if(!e.target.closest('.export-wrap'))document.getElementById('exportMenu').classList.remove('open');});
-function exportFormat(type){
-  document.getElementById('exportMenu').classList.remove('open');
-  const all=savedTranscripts.length?savedTranscripts:blocks.map(b=>({...b,time:b.time.toISOString()}));
-  if(!all.length){setStatus('Nothing to export','err');return;}
-  if(type==='txt'){const c=all.map(s=>`[${new Date(s.time).toLocaleString()}]${s.source?' · '+s.source:''}\n${s.text}`).join('\n\n────────────────────\n\n');dl(c,'transcript.txt','text/plain');}
-  else if(type==='json'){dl(JSON.stringify(all,null,2),'transcript.json','application/json');}
-  else if(type==='srt'){
-    let srt='',idx=1;
-    all.forEach(s=>{s.text.split(/(?<=[.!?])\s+/).filter(Boolean).forEach((line,i)=>{const ss=i*4,se=ss+4;srt+=`${idx}\n${srtT(ss)} --> ${srtT(se)}\n${line.trim()}\n\n`;idx++;});});
-    dl(srt,'transcript.srt','text/plain');
-  }
-}
-const srtT=s=>{const h=Math.floor(s/3600),m=Math.floor(s%3600/60),sec=s%60;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')},000`;};
-function dl(c,n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();setStatus(`Downloaded ${n} ✓`,'ok');}
-
-// SIDEBAR
-function renderSidebar(){
-  const list=document.getElementById('sidebarList');
-  document.getElementById('savedCount').textContent=savedTranscripts.length;
-  if(!savedTranscripts.length){list.innerHTML='<div class="sidebar-empty">No saved transcripts yet.<br>Convert a video and save your results.</div>';return;}
-  list.innerHTML=savedTranscripts.map(s=>`
-    <div class="saved-card">
-      <div class="saved-card-meta"><span>${new Date(s.time).toLocaleDateString()}</span><span>${esc(s.lang||'')}</span></div>
-      ${s.source?`<div style="font-size:.65rem;color:var(--muted);margin-bottom:3px">📹 ${esc(s.source)}</div>`:''}
-      <div class="saved-card-text">${esc(s.text)}</div>
-      <div class="saved-card-actions">
-        <button onclick="loadSaved('${s.id}')">📄 Load</button>
-        <button onclick="copySaved('${s.id}')">📋 Copy</button>
-        <button onclick="grammarSaved('${s.id}')">✍ Check</button>
-        <button class="del" onclick="deleteSaved('${s.id}')">✕</button>
-      </div>
-    </div>`).join('');
-}
-function deleteSaved(id){savedTranscripts=savedTranscripts.filter(s=>s.id!==id);localStorage.setItem('audioscript_saved',JSON.stringify(savedTranscripts));renderSidebar();}
-function copySaved(id){const s=savedTranscripts.find(x=>x.id===id);if(s)navigator.clipboard.writeText(s.text).then(()=>setStatus('Copied ✓','ok'));}
-function loadSaved(id){const s=savedTranscripts.find(x=>x.id===id);if(!s||blocks.find(b=>b.id===s.id))return;const b={id:s.id,text:s.text,lang:s.lang,source:s.source,time:new Date(s.time),grammarNote:s.grammarNote};blocks.push(b);showEmpty(false);renderBlock(b);}
-function grammarSaved(id){const s=savedTranscripts.find(x=>x.id===id);if(!s)return;document.getElementById('modalText').value=s.text;document.getElementById('grammarResult').innerHTML='';document.getElementById('overlay').classList.add('active');}
-document.getElementById('clearSavedBtn').addEventListener('click',()=>{if(!savedTranscripts.length)return;if(!confirm('Delete all saved transcripts?'))return;savedTranscripts=[];localStorage.removeItem('audioscript_saved');renderSidebar();});
-
-// GRAMMAR MODAL
-async function openGrammarModal(blockId){
-  const block=blocks.find(b=>b.id===blockId);if(!block)return;
-  syncText(blockId);
-  document.getElementById('modalText').value=block.text;
-  document.getElementById('grammarResult').innerHTML='';
-  document.getElementById('overlay').classList.add('active');
-  await runGrammarCheck(blockId);
-}
-async function runGrammarCheck(blockId){
-  const text=document.getElementById('modalText').value.trim();if(!text)return;
-  try{getApiKey();}catch(e){document.getElementById('grammarResult').innerHTML=`<div class="grammar-result" style="color:var(--red)">${esc(e.message)}</div>`;return;}
-  document.getElementById('grammarResult').innerHTML='<div class="grammar-spinner">🔍 Checking with Claude AI…</div>';
-  document.getElementById('grammarCheckBtn').disabled=true;
-  try{
-    const result=await claudeGrammar(text);
-    document.getElementById('grammarResult').innerHTML=`<div class="grammar-result">${esc(result)}</div>`;
-    if(blockId){const block=blocks.find(b=>b.id===blockId);if(block){block.grammarNote=result;const el=document.getElementById(`grammar-${blockId}`);if(el)el.innerHTML=`<div class="grammar-note"><span class="grammar-title">Grammar Check</span>${esc(result)}</div>`;}}
-  }catch(e){document.getElementById('grammarResult').innerHTML=`<div class="grammar-result" style="color:var(--red)">Error: ${esc(e.message)}</div>`;}
-  document.getElementById('grammarCheckBtn').disabled=false;
-}
-document.getElementById('grammarCheckBtn').addEventListener('click',()=>runGrammarCheck(null));
-document.getElementById('grammarAllBtn').addEventListener('click',async()=>{
-  if(!blocks.length){setStatus('No blocks to check','err');return;}
-  try{getApiKey();}catch(e){setStatus(e.message,'err');return;}
-  setStatus(`Checking grammar on ${blocks.length} block(s)…`,'busy');
-  for(const block of blocks){
-    try{syncText(block.id);const r=await claudeGrammar(block.text);block.grammarNote=r;const el=document.getElementById(`grammar-${block.id}`);if(el)el.innerHTML=`<div class="grammar-note"><span class="grammar-title">Grammar Check</span>${esc(r)}</div>`;}catch{}
-  }
-  setStatus('Grammar check complete ✓','ok');
-});
-['modalClose','modalClose2'].forEach(id=>document.getElementById(id).addEventListener('click',()=>document.getElementById('overlay').classList.remove('active')));
-document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')document.getElementById('overlay').classList.remove('active');});
-
-renderSidebar();
-</script>
-</body>
-</html>
