@@ -239,6 +239,65 @@
             background: #c82333;
         }
 
+        .save-subtitles-btn {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .save-subtitles-btn:hover {
+            background: #218838;
+        }
+
+        .saved-subtitles-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .saved-subtitle-item {
+            background: white;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid #28a745;
+        }
+
+        .saved-subtitle-meta {
+            font-size: 0.8em;
+            color: #777;
+            margin-top: 4px;
+            word-break: break-all;
+        }
+
+        .saved-subtitle-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .saved-subtitle-actions button {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #667eea;
+            border-radius: 4px;
+            background: white;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .saved-subtitle-actions button.delete {
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
         .status {
             padding: 10px;
             border-radius: 6px;
@@ -352,6 +411,14 @@
                     <p style="color: #999; text-align: center;">Click on German words in the transcription to save them here!</p>
                 </div>
                 <button class="vocab-clear" id="clearVocab" style="display: none;">Clear All</button>
+                <button class="save-subtitles-btn" id="saveSubtitlesBtn" style="display: none;">Save Current Subtitles</button>
+
+                <div class="saved-subtitles-section">
+                    <h3>💾 Saved Subtitles</h3>
+                    <div class="vocab-list" id="savedSubtitlesList">
+                        <p style="color: #999; text-align: center;">Saved subtitles will appear here.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -359,7 +426,9 @@
     <script>
         let captions = [];
         let savedVocab = JSON.parse(localStorage.getItem('germanVocab') || '[]');
+        let savedSubtitles = JSON.parse(localStorage.getItem('savedSubtitles') || '[]');
         let currentVideoId = null;
+        let currentVideoUrl = null;
         let autoScroll = true;
         let showTranslations = true;
         let updateInterval = null;
@@ -374,6 +443,8 @@
             captions: document.getElementById('captions'),
             vocabList: document.getElementById('vocabList'),
             clearVocab: document.getElementById('clearVocab'),
+            saveSubtitlesBtn: document.getElementById('saveSubtitlesBtn'),
+            savedSubtitlesList: document.getElementById('savedSubtitlesList'),
             controls: document.getElementById('controls'),
             autoScrollBtn: document.getElementById('autoScrollBtn'),
             showTranslationBtn: document.getElementById('showTranslationBtn')
@@ -396,6 +467,105 @@
             elements.statusMsg.innerHTML = `<div class="status ${type}">${message}</div>`;
         }
 
+        function renderNoCaptionsState(message) {
+            elements.captions.innerHTML = `
+                <div class="loading">
+                    <strong>Captions unavailable for this video.</strong><br/>
+                    ${message}
+                </div>
+            `;
+        }
+
+        function getSavedSubtitleByVideo(videoId) {
+            return savedSubtitles.find(item => item.videoId === videoId);
+        }
+
+        function renderSavedSubtitles() {
+            if (savedSubtitles.length === 0) {
+                elements.savedSubtitlesList.innerHTML = '<p style="color: #999; text-align: center;">Saved subtitles will appear here.</p>';
+                return;
+            }
+
+            const html = savedSubtitles.slice().reverse().map(item => `
+                <div class="saved-subtitle-item">
+                    <div class="vocab-word">${item.label || `Video ${item.videoId}`}</div>
+                    <div class="saved-subtitle-meta">${item.captions.length} lines • ${new Date(item.savedAt).toLocaleString()}</div>
+                    <div class="saved-subtitle-meta">${item.url}</div>
+                    <div class="saved-subtitle-actions">
+                        <button data-action="load" data-videoid="${item.videoId}">Load</button>
+                        <button class="delete" data-action="delete" data-videoid="${item.videoId}">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+
+            elements.savedSubtitlesList.innerHTML = html;
+
+            elements.savedSubtitlesList.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const action = e.target.dataset.action;
+                    const videoId = e.target.dataset.videoid;
+
+                    if (action === 'load') {
+                        loadSavedSubtitle(videoId);
+                    } else if (action === 'delete') {
+                        deleteSavedSubtitle(videoId);
+                    }
+                });
+            });
+        }
+
+        function saveCurrentSubtitles() {
+            if (!currentVideoId || !currentVideoUrl || captions.length === 0) {
+                showStatus('Load a video with subtitles before saving.', 'info');
+                return;
+            }
+
+            const label = prompt('Optional label for this subtitle set (e.g., B1 Listening Test):', '') || '';
+
+            const entry = {
+                videoId: currentVideoId,
+                url: currentVideoUrl,
+                label: label.trim(),
+                captions,
+                savedAt: Date.now()
+            };
+
+            savedSubtitles = savedSubtitles.filter(item => item.videoId !== currentVideoId);
+            savedSubtitles.push(entry);
+            localStorage.setItem('savedSubtitles', JSON.stringify(savedSubtitles));
+            renderSavedSubtitles();
+            showStatus('✅ Subtitles saved for this video.', 'success');
+        }
+
+        function deleteSavedSubtitle(videoId) {
+            savedSubtitles = savedSubtitles.filter(item => item.videoId !== videoId);
+            localStorage.setItem('savedSubtitles', JSON.stringify(savedSubtitles));
+            renderSavedSubtitles();
+            showStatus('Saved subtitle entry deleted.', 'info');
+        }
+
+        function loadSavedSubtitle(videoId) {
+            const saved = getSavedSubtitleByVideo(videoId);
+            if (!saved) {
+                showStatus('Saved subtitle entry not found.', 'error');
+                return;
+            }
+
+            currentVideoId = saved.videoId;
+            currentVideoUrl = saved.url;
+            captions = saved.captions;
+
+            elements.videoUrl.value = saved.url;
+            elements.videoFrame.src = `https://www.youtube.com/embed/${saved.videoId}?enablejsapi=1`;
+            elements.videoContainer.style.display = 'block';
+            elements.controls.style.display = 'flex';
+            elements.transcriptionPanel.style.display = 'block';
+            elements.saveSubtitlesBtn.style.display = captions.length > 0 ? 'block' : 'none';
+
+            renderCaptions();
+            showStatus('✅ Loaded saved subtitles from local storage.', 'success');
+        }
+
         async function fetchCaptions(videoId) {
             showStatus('Fetching German captions...', 'info');
             
@@ -407,7 +577,7 @@
                 // Extract caption tracks from page
                 const captionMatch = html.match(/"captions":({.*?}]}})/);
                 if (!captionMatch) {
-                    showStatus('No captions available for this video. Try another video with German subtitles.', 'error');
+                    showStatus('This video has no subtitle track. You can still watch it, but transcript/translation will be unavailable.', 'info');
                     return [];
                 }
 
@@ -418,7 +588,7 @@
                 const germanTrack = tracks.find(t => t.languageCode.startsWith('de')) || tracks[0];
                 
                 if (!germanTrack) {
-                    showStatus('No German captions found. Try a video with German subtitles.', 'error');
+                    showStatus('No subtitle tracks found for this video. Transcript/translation is unavailable.', 'info');
                     return [];
                 }
 
@@ -453,7 +623,7 @@
                 return parsedCaptions;
                 
             } catch (error) {
-                showStatus('Error loading captions. Make sure the video has subtitles available.', 'error');
+                showStatus('Could not load subtitles for this video. The video still loads normally.', 'info');
                 console.error('Caption fetch error:', error);
                 return [];
             }
@@ -590,6 +760,7 @@
             }
 
             currentVideoId = videoId;
+            currentVideoUrl = url;
             elements.loadBtn.disabled = true;
             elements.loadBtn.textContent = 'Loading...';
 
@@ -599,6 +770,17 @@
             elements.controls.style.display = 'flex';
             elements.transcriptionPanel.style.display = 'block';
 
+            const savedForVideo = getSavedSubtitleByVideo(videoId);
+            if (savedForVideo) {
+                captions = savedForVideo.captions;
+                renderCaptions();
+                elements.saveSubtitlesBtn.style.display = captions.length > 0 ? 'block' : 'none';
+                showStatus('✅ Loaded subtitles from your saved library for this video.', 'success');
+                elements.loadBtn.disabled = false;
+                elements.loadBtn.textContent = 'Load Video';
+                return;
+            }
+
             // Fetch and translate captions
             captions = await fetchCaptions(videoId);
             
@@ -606,6 +788,10 @@
                 elements.captions.innerHTML = '<div class="loading"><div class="spinner"></div>Translating captions...</div>';
                 captions = await translateCaptions(captions);
                 renderCaptions();
+                elements.saveSubtitlesBtn.style.display = 'block';
+            } else {
+                renderNoCaptionsState('Try another video that has German subtitles enabled.');
+                elements.saveSubtitlesBtn.style.display = 'none';
             }
 
             elements.loadBtn.disabled = false;
@@ -620,6 +806,8 @@
                 renderCaptions();
             }
         });
+
+        elements.saveSubtitlesBtn.addEventListener('click', saveCurrentSubtitles);
 
         elements.autoScrollBtn.addEventListener('click', () => {
             autoScroll = !autoScroll;
@@ -636,6 +824,7 @@
 
         // Initial render
         renderVocab();
+        renderSavedSubtitles();
     </script>
 </body>
 </html>
