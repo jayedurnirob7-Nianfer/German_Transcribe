@@ -25,6 +25,11 @@ header{background:var(--blue);color:var(--gold-dim);padding:16px 32px;display:fl
 .btn-danger{background:var(--red);color:#fff;}.btn-danger:hover{background:#a93226;}
 .btn-green{background:var(--green);color:#fff;}.btn-green:hover{background:#245f49;}.btn-green:disabled{opacity:.45;cursor:not-allowed;}
 .btn-sm{font-size:.73rem;padding:5px 11px;}
+.api-key-bar{background:#fff8e6;border-bottom:2px solid var(--gold);padding:10px 22px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.api-key-bar label{font-size:.75rem;font-weight:700;color:var(--blue);white-space:nowrap;}
+.api-key-input{flex:1;font-family:'DM Mono',monospace;font-size:.78rem;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);outline:none;transition:border-color .2s;min-width:0;}
+.api-key-input:focus{border-color:var(--gold);}
+.api-key-note{font-size:.7rem;color:var(--muted);}
 .converter-panel{background:var(--cream);border-bottom:2px solid var(--border);flex-shrink:0;padding:12px 22px 16px;}
 .converter-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;}
 .converter-title{font-family:'DM Serif Display',serif;font-size:1rem;color:var(--blue);}
@@ -123,6 +128,14 @@ header{background:var(--blue);color:var(--gold-dim);padding:16px 32px;display:fl
 </header>
 <div class="app">
   <div class="main">
+
+    <!-- API Key Bar -->
+    <div class="api-key-bar">
+      <label for="apiKeyInput">🔑 Anthropic API Key</label>
+      <input class="api-key-input" id="apiKeyInput" type="password" placeholder="sk-ant-…  (required for AI features)" autocomplete="off" />
+      <span class="api-key-note">Never stored — session only</span>
+    </div>
+
     <div class="toolbar">
       <span class="toolbar-label">Actions</span>
       <button class="btn btn-outline btn-sm" id="clearTranscriptBtn">✕ Clear</button>
@@ -198,7 +211,7 @@ header{background:var(--blue);color:var(--gold-dim);padding:16px 32px;display:fl
 
     <div class="status-bar">
       <div class="status-dot" id="statusDot"></div>
-      <span class="status-text" id="statusText">Ready — upload a video or paste a YouTube link to begin</span>
+      <span class="status-text" id="statusText">Ready — enter your API key, then upload a video or paste a YouTube link</span>
     </div>
   </div>
 
@@ -239,6 +252,14 @@ const uid=()=>`b${++blockIdCounter}_${Date.now()}`;
 const fmtT=d=>d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const getVid=url=>{const m=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);return m?m[1]:null;};
+
+function getApiKey(){
+  const k=document.getElementById('apiKeyInput').value.trim();
+  if(!k)throw new Error('Please enter your Anthropic API key in the field at the top.');
+  if(!k.startsWith('sk-ant-'))throw new Error('Invalid API key format. It should start with "sk-ant-".');
+  return k;
+}
+
 function setStatus(msg,type=''){document.getElementById('statusDot').className='status-dot'+(type?' '+type:'');document.getElementById('statusText').textContent=msg;}
 function showProgress(on){const b=document.getElementById('progressBar');if(!on){b.style.width='0%';b.classList.remove('indeterminate');return;}b.classList.add('indeterminate');}
 function showEmpty(show){document.getElementById('emptyState').style.display=show?'flex':'none';}
@@ -284,6 +305,7 @@ document.getElementById('convertBtn').addEventListener('click',async()=>{
   const autoDetect=document.getElementById('autoDetectLang').checked;
   const lang=autoDetect?'auto':document.getElementById('langSelect').value;
   if(!uploadedFile&&!vid){setStatus('Please upload a video file or paste a YouTube URL first','err');return;}
+  try{getApiKey();}catch(e){setStatus(e.message,'err');return;}
   document.getElementById('convertBtn').disabled=true;
   setStatus('Processing…','busy');showProgress(true);
   try{if(vid)await convertYT(vid,lang,autoDetect);else await convertFile(uploadedFile,lang,autoDetect);}
@@ -347,7 +369,26 @@ async function convertFile(file,lang,autoDetect){
 const toB64=file=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
 
 async function callClaude(system,userContent){
-  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system,messages:[{role:'user',content:userContent}]})});
+  const apiKey=getApiKey();
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body:JSON.stringify({
+      model:'claude-opus-4-5',
+      max_tokens:2000,
+      system,
+      messages:[{role:'user',content:userContent}]
+    })
+  });
+  if(!res.ok){
+    const err=await res.json().catch(()=>({}));
+    throw new Error(err?.error?.message||`API error ${res.status}`);
+  }
   const data=await res.json();
   if(data.error)throw new Error(data.error.message||'Claude API error');
   return data.content?.[0]?.text||'';
@@ -472,7 +513,7 @@ function loadSaved(id){const s=savedTranscripts.find(x=>x.id===id);if(!s||blocks
 function grammarSaved(id){const s=savedTranscripts.find(x=>x.id===id);if(!s)return;document.getElementById('modalText').value=s.text;document.getElementById('grammarResult').innerHTML='';document.getElementById('overlay').classList.add('active');}
 document.getElementById('clearSavedBtn').addEventListener('click',()=>{if(!savedTranscripts.length)return;if(!confirm('Delete all saved transcripts?'))return;savedTranscripts=[];localStorage.removeItem('audioscript_saved');renderSidebar();});
 
-// GRAMMAR
+// GRAMMAR MODAL
 async function openGrammarModal(blockId){
   const block=blocks.find(b=>b.id===blockId);if(!block)return;
   syncText(blockId);
@@ -483,6 +524,7 @@ async function openGrammarModal(blockId){
 }
 async function runGrammarCheck(blockId){
   const text=document.getElementById('modalText').value.trim();if(!text)return;
+  try{getApiKey();}catch(e){document.getElementById('grammarResult').innerHTML=`<div class="grammar-result" style="color:var(--red)">${esc(e.message)}</div>`;return;}
   document.getElementById('grammarResult').innerHTML='<div class="grammar-spinner">🔍 Checking with Claude AI…</div>';
   document.getElementById('grammarCheckBtn').disabled=true;
   try{
@@ -495,6 +537,7 @@ async function runGrammarCheck(blockId){
 document.getElementById('grammarCheckBtn').addEventListener('click',()=>runGrammarCheck(null));
 document.getElementById('grammarAllBtn').addEventListener('click',async()=>{
   if(!blocks.length){setStatus('No blocks to check','err');return;}
+  try{getApiKey();}catch(e){setStatus(e.message,'err');return;}
   setStatus(`Checking grammar on ${blocks.length} block(s)…`,'busy');
   for(const block of blocks){
     try{syncText(block.id);const r=await claudeGrammar(block.text);block.grammarNote=r;const el=document.getElementById(`grammar-${block.id}`);if(el)el.innerHTML=`<div class="grammar-note"><span class="grammar-title">Grammar Check</span>${esc(r)}</div>`;}catch{}
