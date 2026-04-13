@@ -396,6 +396,15 @@
             elements.statusMsg.innerHTML = `<div class="status ${type}">${message}</div>`;
         }
 
+        function renderNoCaptionsState(message) {
+            elements.captions.innerHTML = `
+                <div class="loading">
+                    <strong>Captions unavailable for this video.</strong><br/>
+                    ${message}
+                </div>
+            `;
+        }
+
         async function fetchCaptions(videoId) {
             showStatus('Fetching German captions...', 'info');
             
@@ -407,7 +416,7 @@
                 // Extract caption tracks from page
                 const captionMatch = html.match(/"captions":({.*?}]}})/);
                 if (!captionMatch) {
-                    showStatus('No captions available for this video. Try another video with German subtitles.', 'error');
+                    showStatus('This video has no subtitle track. You can still watch it, but transcript/translation will be unavailable.', 'info');
                     return [];
                 }
 
@@ -418,7 +427,7 @@
                 const germanTrack = tracks.find(t => t.languageCode.startsWith('de')) || tracks[0];
                 
                 if (!germanTrack) {
-                    showStatus('No German captions found. Try a video with German subtitles.', 'error');
+                    showStatus('No subtitle tracks found for this video. Transcript/translation is unavailable.', 'info');
                     return [];
                 }
 
@@ -453,7 +462,7 @@
                 return parsedCaptions;
                 
             } catch (error) {
-                showStatus('Error loading captions. Make sure the video has subtitles available.', 'error');
+                showStatus('Could not load subtitles for this video. The video still loads normally.', 'info');
                 console.error('Caption fetch error:', error);
                 return [];
             }
@@ -606,6 +615,8 @@
                 elements.captions.innerHTML = '<div class="loading"><div class="spinner"></div>Translating captions...</div>';
                 captions = await translateCaptions(captions);
                 renderCaptions();
+            } else {
+                renderNoCaptionsState('Try another video that has German subtitles enabled.');
             }
 
             elements.loadBtn.disabled = false;
